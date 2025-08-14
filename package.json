@@ -1,0 +1,56 @@
+{
+  "name": "cc-status",
+  "version": "0.1.0",
+  "description": "Focused Claude Code statusline with real subscription usage, context monitoring, and time projections",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "cc-status": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "statusline",
+    "powerline",
+    "ccusage",
+    "typescript"
+  ],
+  "author": "rgfx",
+  "license": "MIT",
+  "homepage": "https://github.com/rgfx/cc-status#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rgfx/cc-status.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rgfx/cc-status/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

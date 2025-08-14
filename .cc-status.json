@@ -1,0 +1,42 @@
+{
+  "segments": {
+    "git": {
+      "enabled": true,
+      "showSha": false
+    },
+    "subscription": {
+      "enabled": true,
+      "showPercentage": true,
+      "showTokens": true
+    },
+    "context": {
+      "enabled": false
+    },
+    "burnRate": {
+      "enabled": false
+    },
+    "timeLeft": {
+      "enabled": false
+    }
+  },
+  "format": {
+    "separator": "  ",
+    "icons": {
+      "git": "⑂",
+      "subscription": "↻",
+      "context": "◷",
+      "burnRate": "⟢",
+      "timeLeft": "⏱"
+    }
+  },
+  "colors": {
+    "safe": "#00ff00",
+    "warning": "#ffff00", 
+    "critical": "#ff0000",
+    "neutral": "#ffffff"
+  },
+  "thresholds": {
+    "warning": 80,
+    "critical": 100
+  }
+}

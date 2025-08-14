@@ -1,21 +1,20 @@
 # cc-status
 
-A focused, minimal statusline for Claude Code that shows what matters most in a clean single-line format.
+A focused, minimal statusline for Claude Code that displays real usage data in a clean single-line format.
 
 ```
-⑂ main ✓  ↻ 48.6% 9404.3k/19342.8k  ◐ 15%  ◷ 4h 53m 4:00:00AM  $41.07  ✽
+⑂ main ✓ ↻ 35.9% 16.3M/45.6M ◐ 77% ◷ 3:36 1PM $7.28 ✽
 ```
 
 ## Features
 
-- **Real ccusage integration** - Live subscription usage with dynamic limits  
-- **Real context tracking** - Shows actual Claude memory usage from transcript data
-- **Burn rate projections** - Predictive limit warnings with ✽ indicator
-- **Daily cost tracking** - Shows actual spending for today using ccusage data
-- **Session timer** - Time until 5-hour block reset with countdown
-- **Git status** - Branch, clean/dirty state, ahead/behind counts
-- **Configurable segments** - Enable/disable any component
-- **Color coding** - Green (safe), Yellow (warning), Red (critical)
+- **Real subscription usage** - Direct integration with ccusage for accurate usage data
+- **Context monitoring** - Shows context percentage from actual transcript files  
+- **Git integration** - Branch name, dirty status, ahead/behind indicators
+- **Session timer** - Time remaining until usage limit reset
+- **Burn rate tracking** - Visual indicator with color coding based on projections
+- **Color coded** - Green (safe), yellow (warning), red (critical)
+- **Fully configurable** - Enable/disable segments, customize colors and icons
 
 ## Installation
 
@@ -23,156 +22,89 @@ A focused, minimal statusline for Claude Code that shows what matters most in a 
 npm install -g cc-status
 ```
 
-## Usage in Claude Code
+## Usage
 
-Add to `~/.claude/settings.json`:
+### Claude Code Integration
+
+Add to your Claude Code `settings.json`:
 
 ```json
 {
   "statusLine": {
-    "type": "command",
+    "type": "command", 
     "command": "cc-status"
   }
 }
 ```
 
+### Manual Testing
+
+```bash
+# Test the statusline (requires Claude Code context)
+echo '{}' | cc-status
+
+# Show help
+cc-status --help
+```
+
 ## Configuration
 
-### Command-line flags (highest priority)
-```bash
-cc-status --git=false --context=true --burnRate=true
-```
+Create `.cc-status.json` in your project root or `~/.claude/cc-status.json`:
 
-### Environment variables
-```bash
-export CC_STATUS_GIT_ENABLED=false
-export CC_STATUS_CONTEXT_ENABLED=true
-```
-
-### Config files (searched in order)
-1. `./cc-status.json` (project-level)
-2. `~/.claude/cc-status.json` (user-level)
-3. `~/.config/cc-status/config.json` (XDG)
-
-### Example config file
 ```json
 {
   "segments": {
-    "git": { "enabled": true, "showSha": false },
+    "git": { "enabled": true },
     "subscription": { "enabled": true },
-    "context": { "enabled": false },
-    "burnRate": { "enabled": false },
-    "timeLeft": { "enabled": false }
+    "context": { "enabled": true },
+    "burnRate": { "enabled": true }
+  },
+  "format": {
+    "separator": " ",
+    "icons": {
+      "git": "⑂",
+      "subscription": "↻", 
+      "context": "◐",
+      "burnRate": "✽"
+    }
   },
   "colors": {
     "safe": "#00ff00",
     "warning": "#ffff00",
-    "critical": "#ff0000"
+    "critical": "#ff0000", 
+    "neutral": "#888888"
   }
 }
 ```
 
-## Git Status Symbols
+## Output Format
 
-The git segment shows branch name and status with the following indicators:
+| Segment | Description | Example |
+|---------|-------------|---------|
+| `⑂ main ✓` | Git branch and status | Clean working tree |
+| `↻ 35.9% 16.3M/45.6M` | Subscription usage | 35.9% of limit used |
+| `◐ 77%` | Context usage | 77% context remaining |
+| `◷ 3:36 1PM` | Session timer | 3h 36m until reset at 1PM |
+| `$7.28` | Session cost | Current session cost |
+| `✽` | Burn rate indicator | Green/yellow/red based on projections |
 
-### Status Symbols
-- **✓** - Clean (no uncommitted changes)
-- **●** - Dirty (uncommitted changes present)
-- **⚠** - Conflicts (merge conflicts need resolution)
+## Requirements
 
-### Ahead/Behind Indicators
-- **↑3** - 3 commits ahead of remote branch
-- **↓2** - 2 commits behind remote branch  
-- **↑1↓2** - 1 commit ahead and 2 commits behind remote
+- **Node.js** ≥18.0.0
+- **ccusage** - Available via `npx ccusage` (for subscription data)
+- **git** - Available in PATH (for git status)  
+- **Claude Code** - For transcript file access
 
-### Examples
-```
-⑂ main ✓        # Clean repository on main branch
-⑂ main ●        # Uncommitted changes on main branch
-⑂ main ● ↓2     # Dirty repository, 2 commits behind remote
-⑂ main ✓ ↑1     # Clean repository, 1 commit ahead of remote
-⑂ feature ⚠     # Merge conflicts on feature branch
-```
+## Color Coding
 
-### Daily Cost Tracking
-
-The daily cost feature shows your actual spending for today, calculated using ccusage's daily aggregation:
-
-```
-$37.48
-```
-
-- **Live data** - Uses `ccusage daily` command for accurate daily totals
-- **Real costs** - Shows actual calculated costs, not estimates  
-- **Timezone aware** - Properly handles local timezone for daily calculations
-- **Configurable** - Can be disabled via `"dailyCost": { "enabled": false }`
-
-### Real Context Tracking
-
-The context feature shows actual Claude memory usage from transcript data:
-
-```
-◐ 15%
-```
-
-- **Real data** - Reads from actual Claude Code transcript files via hook data
-- **Accurate calculation** - Uses Claude's own token counting (input + cache tokens)
-- **Context-aware** - Shows percentage of 200k context window used
-- **Smart filtering** - Ignores sidechain entries, finds most recent usage
-- **Visual indicator** - `◐` (half-filled circle) represents partial memory usage
-- **Color coding** - Neutral grey normally, yellow when approaching context limit (>80%)
-
-Only displays when running in actual Claude Code sessions with transcript access.
-
-### Burn Rate Projections
-
-The burn rate feature provides predictive limit warnings using ccusage projection logic:
-
-```
-✽
-```
-
-- **Predictive analysis** - Projects total session usage based on current burn rate
-- **Limit warnings** - Red when projected to exceed subscription limits, yellow when approaching
-- **Real calculations** - Uses actual transcript data and ccusage session block logic
-- **Early warning** - Alerts you before hitting limits, not after
-- **Visual indicator** - `✽` (asterisk) shows projection status at a glance
-
-Colors indicate projected session outcome:
-- **Grey ✽**: Projected to stay within limits
-- **Yellow ✽**: Projected to approach limits (80-100%)  
-- **Red ✽**: Projected to exceed limits (>100%)
-
-## Architecture
-
-- **Cross-platform** TypeScript/Node.js for Windows compatibility
-- **Real data sources** via ccusage subprocess calls
-- **Graceful fallbacks** when data unavailable
-- **Owloops-inspired** configuration system with priority hierarchy
-
-## Credits & Inspiration
-
-This project was inspired by and learned from several excellent statusline implementations:
-
-### [Owloops/claude-powerline](https://github.com/Owloops/claude-powerline)
-- **Excellent git service implementation** and multi-line layout system
-- **Context monitoring** from transcript files  
-- **Color theming architecture** and configuration patterns
-- **📝 Note**: If you're on a **token-based plan** (not subscription), Owloops' claude-powerline may be better suited as it reads directly from transcript files rather than requiring ccusage integration
-
-### [chongdashu/cc-statusline](https://github.com/chongdashu/cc-statusline)  
-- **Direct ccusage subprocess integration** (`npx ccusage blocks --json`)
-- **Performance-focused bash implementation**
-- **Real-time usage tracking** approach and configuration patterns
-
-### [ryoppippi/ccusage](https://github.com/ryoppippi/ccusage)
-- **Source of truth** for all Claude usage data and billing block logic
-- **Block limit calculation methods** that we implemented
-- **Live monitoring** implementation (`--live` flag)
-
-Special thanks to these developers for their innovative work on Claude Code tooling!
+- 🟢 **Green (0-80%)**: Safe usage levels
+- 🟡 **Yellow (80-100%)**: Warning - approaching limits
+- 🔴 **Red (100%+)**: Critical - over limits
 
 ## License
 
-MIT
+MIT © [rgfx](https://github.com/rgfx)
+
+## Contributing
+
+Issues and pull requests welcome at [rgfx/cc-status](https://github.com/rgfx/cc-status).

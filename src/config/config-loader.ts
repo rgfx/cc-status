@@ -16,7 +16,7 @@ export class ConfigLoader {
     const configDir = process.env.XDG_CONFIG_HOME || path.join(homeDir, '.config');
     
     return {
-      project: path.join(cwd, '.cc-status.json'),
+      project: path.join(cwd, 'cc-status.json'),
       user: path.join(homeDir, '.claude', 'cc-status.json'),
       xdg: path.join(configDir, 'cc-status', 'config.json')
     };

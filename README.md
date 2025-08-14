@@ -51,7 +51,7 @@ cc-status --help
 
 ## Configuration
 
-Create `.cc-status.json` in your project root or `~/.claude/cc-status.json`:
+Create `cc-status.json` in your project root or `~/.claude/cc-status.json`:
 
 ```json
 {

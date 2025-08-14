@@ -33,6 +33,7 @@ A focused, minimal statusline for Claude Code that shows what matters most in a 
 
 ### 1. Owloops/claude-powerline
 - **Repository**: https://github.com/Owloops/claude-powerline
+- **Local Reference**: `./reference/claude-powerline/` (gitignored)
 - **What we learned**: 
   - Excellent git service implementation
   - Context monitoring from transcript files
@@ -42,11 +43,31 @@ A focused, minimal statusline for Claude Code that shows what matters most in a 
 
 ### 2. chongdashu/cc-statusline  
 - **Repository**: https://github.com/chongdashu/cc-statusline
+- **Local Reference**: `./reference/cc-statusline/` (gitignored)
 - **What we learned**:
   - Direct ccusage subprocess integration (`npx ccusage blocks --json`)
   - Performance-focused bash implementation  
   - Real-time usage tracking approach
   - Simple configuration patterns
+  - Block limit calculation methods
+
+### 3. ryoppippi/ccusage (source of truth)
+- **Repository**: https://github.com/ryoppippi/ccusage  
+- **Local Reference**: `./reference/ccusage/` (gitignored)
+- **What we need**:
+  - Block limit calculation logic for `19,342,806 tokens`
+  - Live monitor implementation (`--live` flag)
+  - JSON output structure and field meanings
+
+### Reference Setup
+```bash
+# Reference repos are cloned locally for analysis but gitignored
+mkdir reference/
+cd reference/
+git clone https://github.com/Owloops/claude-powerline.git
+git clone https://github.com/chongdashu/cc-statusline.git
+git clone https://github.com/ryoppippi/ccusage.git
+```
 
 ## Architecture Decisions
 
@@ -57,6 +78,7 @@ A focused, minimal statusline for Claude Code that shows what matters most in a 
 
 ### Data Sources
 - **ccusage subprocess**: `npx ccusage blocks --json` for real subscription data
+- **ccusage live monitor**: `npx ccusage@latest blocks --live` for debugging/verification
 - **Transcript files**: Direct parsing for context usage
 - **Git commands**: `git` subprocess calls for repository status
 - **Session analysis**: Calculate burn rates from transcript data

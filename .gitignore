@@ -32,3 +32,6 @@ coverage/
 
 # Claude Code local settings
 .claude/
+
+# Reference repositories for analysis
+reference/

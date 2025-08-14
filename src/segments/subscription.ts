@@ -36,18 +36,21 @@ export class SubscriptionService {
       
       const tokensUsed = activeBlock.totalTokens || 0;
       
-      // Try to get limit from projection, fallback to looking at historical max usage
-      let tokensLimit: number;
-      if (activeBlock.projection?.totalTokens) {
-        tokensLimit = activeBlock.projection.totalTokens;
-      } else {
-        // Look for the highest token usage in recent blocks to estimate capacity
-        const recentBlocks = ccusageData.blocks
-          .filter((block: any) => !block.isGap && block.totalTokens > 0)
-          .slice(-10); // Last 10 non-gap blocks
-        const maxTokens = Math.max(...recentBlocks.map((block: any) => block.totalTokens || 0));
-        // Use 20% buffer above max observed usage as estimated limit
-        tokensLimit = Math.max(maxTokens * 1.2, tokensUsed * 1.1);
+      // Calculate limit using ccusage's exact method: max tokens from previous completed blocks
+      let tokensLimit = 0;
+      for (const block of ccusageData.blocks) {
+        // Skip gaps and active blocks, only look at completed blocks
+        if (!(block.isGap ?? false) && !block.isActive) {
+          const blockTokens = block.totalTokens || 0;
+          if (blockTokens > tokensLimit) {
+            tokensLimit = blockTokens;
+          }
+        }
+      }
+      
+      // Fallback if no historical data available
+      if (tokensLimit === 0) {
+        tokensLimit = tokensUsed * 2; // Conservative fallback
       }
       
       const percentage = tokensLimit > 0 ? (tokensUsed / tokensLimit) * 100 : 0;

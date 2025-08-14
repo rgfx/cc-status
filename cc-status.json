@@ -20,6 +20,6 @@
     "safe": "#00ff00",
     "warning": "#ffff00",
     "critical": "#ff0000",
-    "neutral": "#ffffff"
+    "neutral": "#888888"
   }
 }

@@ -61,17 +61,20 @@ export class StatusRenderer {
     const tokensUsedFormatted = this.formatTokens(subscriptionInfo.tokensUsed);
     const tokensLimitFormatted = this.formatTokens(subscriptionInfo.tokensLimit);
     
-    const text = `${subIcon} ${subscriptionInfo.percentage.toFixed(1)}% (${tokensUsedFormatted}/${tokensLimitFormatted})`;
-
-    // Color based on percentage
-    let color = this.config.colors.safe;
-    if (subscriptionInfo.percentage >= 100) {
-      color = this.config.colors.critical;
-    } else if (subscriptionInfo.percentage >= 80) {
-      color = this.config.colors.warning;
+    // Color only the percentage value based on thresholds
+    let percentageColor = this.config.colors.safe;
+    if (subscriptionInfo.percentage >= 80) {
+      percentageColor = this.config.colors.critical;
+    } else if (subscriptionInfo.percentage >= 60) {
+      percentageColor = this.config.colors.warning;
     }
-
-    return colorText(text, color);
+    
+    const coloredPercentage = colorText(`${subscriptionInfo.percentage.toFixed(1)}%`, percentageColor);
+    
+    // Rest of text in neutral grey
+    return colorText(`${subIcon} `, this.config.colors.neutral) + 
+           coloredPercentage + 
+           colorText(` (${tokensUsedFormatted}/${tokensLimitFormatted})`, this.config.colors.neutral);
   }
 
   renderDummyContext(): string {
@@ -82,7 +85,7 @@ export class StatusRenderer {
     
     // Dummy context data - 76% remaining
     const text = `${contextIcon} 45k (76%)`;
-    return colorText(text, this.config.colors.safe);
+    return colorText(text, this.config.colors.neutral);
   }
 
   renderDummyBurnRate(): string {
@@ -113,10 +116,10 @@ export class StatusRenderer {
 
     const { sessionTimer: timerIcon } = this.config.format.icons;
     
-    // Format: ◷ 3h (11:00:00 PM) - entire text including icon in light blue
+    // Format: ◷ 3h (11:00:00 PM) - entire text in neutral grey
     const text = `${timerIcon} ${sessionTimerInfo.timeRemaining} (${sessionTimerInfo.resetTime})`;
     
-    return colorText(text, this.config.colors.lightBlue);
+    return colorText(text, this.config.colors.neutral);
   }
 
   render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: any, sessionTimerInfo?: SessionTimerInfo | null): string {
@@ -128,7 +131,8 @@ export class StatusRenderer {
       this.renderSessionTimer(sessionTimerInfo)
     ].filter(segment => segment.length > 0);
 
-    return segments.join(this.config.format.separator);
+    // Add color reset at the beginning to fix PowerShell first-segment issue
+    return '\x1b[0m' + segments.join(this.config.format.separator);
   }
 
   private formatTokens(tokens: number): string {

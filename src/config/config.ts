@@ -56,7 +56,7 @@ export const DEFAULT_CONFIG: Config = {
     safe: "#00ff00",     // Green
     warning: "#ffff00",  // Yellow  
     critical: "#ff0000", // Red
-    neutral: "#ffffff",  // White
+    neutral: "#8387a1",  // Grey
     lightBlue: "#87ceeb" // Light blue for session timer
   }
 };

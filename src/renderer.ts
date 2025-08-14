@@ -1,5 +1,6 @@
 import { GitInfo } from "./segments/git.js";
 import { SubscriptionInfo } from "./segments/subscription.js";
+import { SessionTimerInfo } from "./segments/session-timer.js";
 import { Config } from "./config/config.js";
 import { colorText } from "./utils/colors.js";
 
@@ -106,13 +107,25 @@ export class StatusRenderer {
     return colorText(text, this.config.colors.neutral);
   }
 
-  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: any): string {
+  renderSessionTimer(sessionTimerInfo: SessionTimerInfo | null): string {
+    const { sessionTimer: timerConfig } = this.config.segments;
+    if (!timerConfig.enabled || !sessionTimerInfo) return "";
+
+    const { sessionTimer: timerIcon } = this.config.format.icons;
+    
+    // Format: ◷ 3h (11:00:00 PM) - entire text including icon in light blue
+    const text = `${timerIcon} ${sessionTimerInfo.timeRemaining} (${sessionTimerInfo.resetTime})`;
+    
+    return colorText(text, this.config.colors.lightBlue);
+  }
+
+  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: any, sessionTimerInfo?: SessionTimerInfo | null): string {
     const segments = [
       this.renderGit(gitInfo),
       this.renderSubscription(subscriptionInfo),
       this.renderDummyContext(),
       this.renderDummyBurnRate(),
-      this.renderDummyTimeLeft()
+      this.renderSessionTimer(sessionTimerInfo)
     ].filter(segment => segment.length > 0);
 
     return segments.join(this.config.format.separator);

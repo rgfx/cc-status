@@ -3,6 +3,7 @@ import { json } from "node:stream/consumers";
 import { GitService } from "./segments/git.js";
 import { SubscriptionService } from "./segments/subscription.js";
 import { ContextService } from "./segments/context.js";
+import { SessionTimerService } from "./segments/session-timer.js";
 import { StatusRenderer, ClaudeHookData } from "./renderer.js";
 import { ConfigLoader } from "./config/config-loader.js";
 
@@ -76,6 +77,7 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     const gitService = new GitService();
     const subscriptionService = new SubscriptionService();
     const contextService = new ContextService();
+    const sessionTimerService = new SessionTimerService();
     const renderer = new StatusRenderer(finalConfig);
 
     // Get data based on what's enabled
@@ -101,8 +103,22 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
 
     const [gitInfo, subscriptionInfo, contextInfo] = await Promise.all(promises);
 
+    // Get session timer info if enabled
+    let sessionTimerInfo = null;
+    if (finalConfig.segments.sessionTimer.enabled && subscriptionInfo) {
+      // Get ccusage data again for session timer (we need the active block)
+      try {
+        const ccusageData = await subscriptionService.callCcusage();
+        const activeBlock = ccusageData?.blocks?.find((block: any) => block.isActive === true);
+        sessionTimerInfo = sessionTimerService.getSessionTimer(activeBlock);
+      } catch {
+        // Fallback gracefully if ccusage fails
+        sessionTimerInfo = null;
+      }
+    }
+
     // Render and output
-    const statusline = renderer.render(gitInfo, subscriptionInfo, contextInfo);
+    const statusline = renderer.render(gitInfo, subscriptionInfo, contextInfo, sessionTimerInfo);
     console.log(statusline);
 
   } catch (error) {

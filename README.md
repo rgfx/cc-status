@@ -71,6 +71,29 @@ export CC_STATUS_CONTEXT_ENABLED=true
 }
 ```
 
+## Git Status Symbols
+
+The git segment shows branch name and status with the following indicators:
+
+### Status Symbols
+- **✓** - Clean (no uncommitted changes)
+- **●** - Dirty (uncommitted changes present)
+- **⚠** - Conflicts (merge conflicts need resolution)
+
+### Ahead/Behind Indicators
+- **↑3** - 3 commits ahead of remote branch
+- **↓2** - 2 commits behind remote branch  
+- **↑1↓2** - 1 commit ahead and 2 commits behind remote
+
+### Examples
+```
+⑂ main ✓        # Clean repository on main branch
+⑂ main ●        # Uncommitted changes on main branch
+⑂ main ● ↓2     # Dirty repository, 2 commits behind remote
+⑂ main ✓ ↑1     # Clean repository, 1 commit ahead of remote
+⑂ feature ⚠     # Merge conflicts on feature branch
+```
+
 ## Architecture
 
 - **Cross-platform** TypeScript/Node.js for Windows compatibility

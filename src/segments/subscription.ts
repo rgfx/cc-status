@@ -68,7 +68,7 @@ export class SubscriptionService {
     }
   }
 
-  private async callCcusage(): Promise<any> {
+  async callCcusage(): Promise<any> {
     try {
       // Try npx ccusage@latest first, then fallback to ccusage directly
       let result: string;

@@ -10,6 +10,7 @@ export interface Config {
     context: SegmentConfig;
     burnRate: SegmentConfig;
     timeLeft: SegmentConfig;
+    sessionTimer: SegmentConfig;
   };
   format: {
     separator: string;
@@ -19,13 +20,15 @@ export interface Config {
       context: string;
       burnRate: string;
       timeLeft: string;
+      sessionTimer: string;
     };
   };
   colors: {
-    safe: string;    // 0-80%
-    warning: string; // 80-100%
-    critical: string; // 100%+
-    neutral: string; // git, rates, time
+    safe: string;      // 0-80%
+    warning: string;   // 80-100%
+    critical: string;  // 100%+
+    neutral: string;   // git, rates, time
+    lightBlue: string; // session timer
   };
 }
 
@@ -35,22 +38,25 @@ export const DEFAULT_CONFIG: Config = {
     subscription: { enabled: true, color: "auto" },
     context: { enabled: true, color: "auto" },
     burnRate: { enabled: true, color: "neutral" },
-    timeLeft: { enabled: true, color: "neutral" }
+    timeLeft: { enabled: true, color: "neutral" },
+    sessionTimer: { enabled: true, color: "lightBlue" }
   },
   format: {
-    separator: "  ",
+    separator: " ",
     icons: {
       git: "⑂",
       subscription: "↻",
       context: "◷",
       burnRate: "⟢",
-      timeLeft: "⏱"
+      timeLeft: "⏱",
+      sessionTimer: "◷"
     }
   },
   colors: {
     safe: "#00ff00",     // Green
     warning: "#ffff00",  // Yellow  
     critical: "#ff0000", // Red
-    neutral: "#ffffff"   // White
+    neutral: "#ffffff",  // White
+    lightBlue: "#87ceeb" // Light blue for session timer
   }
 };

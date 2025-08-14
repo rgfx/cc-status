@@ -98,7 +98,7 @@ export class ConfigLoader {
         const [key, value] = arg.slice(2).split('=');
         
         // Handle segment flags: --git=false, --subscription=true
-        if (['git', 'subscription', 'context', 'burnRate', 'timeLeft'].includes(key)) {
+        if (['git', 'subscription', 'context', 'burnRate', 'timeLeft', 'sessionTimer'].includes(key)) {
           if (!cliConfig.segments[key]) cliConfig.segments[key] = {};
           cliConfig.segments[key].enabled = value !== 'false';
         }

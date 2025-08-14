@@ -36,10 +36,10 @@ export class SubscriptionService {
       
       const tokensUsed = activeBlock.totalTokens || 0;
       
-      // Calculate limit using ccusage's exact method: max tokens from previous completed blocks
+      // Use ccusage's exact logic: max tokens from ALL completed blocks (not gaps, not active)
       let tokensLimit = 0;
+      
       for (const block of ccusageData.blocks) {
-        // Skip gaps and active blocks, only look at completed blocks
         if (!(block.isGap ?? false) && !block.isActive) {
           const blockTokens = block.totalTokens || 0;
           if (blockTokens > tokensLimit) {

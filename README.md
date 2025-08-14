@@ -3,18 +3,17 @@
 A focused, minimal statusline for Claude Code that shows what matters most in a clean single-line format.
 
 ```
-⑂ main ✓  ↻ 48.6% (9404.3k/19342.8k)  ◐ 15%  ◷ 4h 53m (4:00:00 AM)  $41.07
+⑂ main ✓  ↻ 48.6% 9404.3k/19342.8k  ◐ 15%  ◷ 4h 53m 4:00:00AM  $41.07  ✽
 ```
 
 ## Features
 
 - **Real ccusage integration** - Live subscription usage with dynamic limits  
 - **Real context tracking** - Shows actual Claude memory usage from transcript data
+- **Burn rate projections** - Predictive limit warnings with ✽ indicator
 - **Daily cost tracking** - Shows actual spending for today using ccusage data
 - **Session timer** - Time until 5-hour block reset with countdown
 - **Git status** - Branch, clean/dirty state, ahead/behind counts
-- **Burn rate tracking** - Cost and token usage per hour
-- **Time projections** - Hours remaining until limits
 - **Configurable segments** - Enable/disable any component
 - **Color coding** - Green (safe), Yellow (warning), Red (critical)
 
@@ -125,6 +124,25 @@ The context feature shows actual Claude memory usage from transcript data:
 - **Color coding** - Neutral grey normally, yellow when approaching context limit (>80%)
 
 Only displays when running in actual Claude Code sessions with transcript access.
+
+### Burn Rate Projections
+
+The burn rate feature provides predictive limit warnings using ccusage projection logic:
+
+```
+✽
+```
+
+- **Predictive analysis** - Projects total session usage based on current burn rate
+- **Limit warnings** - Red when projected to exceed subscription limits, yellow when approaching
+- **Real calculations** - Uses actual transcript data and ccusage session block logic
+- **Early warning** - Alerts you before hitting limits, not after
+- **Visual indicator** - `✽` (asterisk) shows projection status at a glance
+
+Colors indicate projected session outcome:
+- **Grey ✽**: Projected to stay within limits
+- **Yellow ✽**: Projected to approach limits (80-100%)  
+- **Red ✽**: Projected to exceed limits (>100%)
 
 ## Architecture
 

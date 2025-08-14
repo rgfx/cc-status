@@ -42,16 +42,18 @@ export class SessionTimerService {
         timeRemaining = `${remainingSeconds}s`;
       }
       
-      // Format reset time (HH:MM:SSAM/PM) - no space before AM/PM
-      let resetTimeFormatted = resetTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
+      // Format reset time like ccusage: use 2-digit hour format then remove leading zeros
+      let resetTimeFormatted = resetTime.toLocaleTimeString(undefined, {
+        hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true
       });
       
-      // Remove space before AM/PM
-      resetTimeFormatted = resetTimeFormatted.replace(' AM', 'AM').replace(' PM', 'PM');
+      // Remove minutes and seconds to get compact format like ccusage (4AM, not 4:00AM)
+      resetTimeFormatted = resetTimeFormatted.replace(/:\d{2}(:\d{2})?\s*(AM|PM)/, '$2');
+      
+      // Remove leading zero from hour (04AM -> 4AM) to match ccusage compact style
+      resetTimeFormatted = resetTimeFormatted.replace(/^0/, '');
       
       // Check if near reset (less than 30 minutes)
       const isNearReset = remainingSeconds < 30 * 60;

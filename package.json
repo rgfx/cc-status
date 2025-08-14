@@ -1,6 +1,6 @@
 {
   "name": "cc-status",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Focused Claude Code statusline with real subscription usage, context monitoring, and time projections",
   "type": "module",
   "main": "./dist/index.js",

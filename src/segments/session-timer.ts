@@ -29,13 +29,11 @@ export class SessionTimerService {
       const hours = Math.floor(remainingSeconds / 3600);
       const minutes = Math.floor((remainingSeconds % 3600) / 60);
       
-      // Format time remaining
+      // Format time remaining in compact format
       let timeRemaining: string;
       if (hours > 0) {
-        timeRemaining = `${hours}h`;
-        if (minutes > 0) {
-          timeRemaining += ` ${minutes}m`;
-        }
+        // Use H:MM format for hours and minutes (e.g., "3:39")
+        timeRemaining = `${hours}:${minutes.toString().padStart(2, '0')}`;
       } else if (minutes > 0) {
         timeRemaining = `${minutes}m`;
       } else {

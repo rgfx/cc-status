@@ -5,6 +5,11 @@ export interface SubscriptionInfo {
   tokensUsed: number;
   tokensLimit: number;
   isOverLimit: boolean;
+  projection?: {
+    totalTokens: number;
+    totalCost: number;
+    remainingMinutes: number;
+  } | null;
 }
 
 interface CcusageBlock {
@@ -60,7 +65,8 @@ export class SubscriptionService {
         percentage: Math.round(percentage * 10) / 10, // Round to 1 decimal
         tokensUsed,
         tokensLimit,
-        isOverLimit
+        isOverLimit,
+        projection: activeBlock.projection || null
       };
     } catch (error) {
       // Graceful fallback when ccusage is not available
@@ -97,7 +103,8 @@ export class SubscriptionService {
       percentage: 48.6,
       tokensUsed: 9404300, // 9404.3k in raw tokens
       tokensLimit: 19342800, // 19342.8k in raw tokens  
-      isOverLimit: false
+      isOverLimit: false,
+      projection: null
     };
   }
 

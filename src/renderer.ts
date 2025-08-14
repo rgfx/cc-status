@@ -107,12 +107,12 @@ export class StatusRenderer {
     // Just show the icon - no cost value
     const text = burnIcon;
     
-    // Color based on projection vs subscription limit (like ccusage)
+    // Color based on ccusage's projection data (like ccusage does)
     let color = this.config.colors.neutral;
     
-    if (burnRateInfo?.projection && subscriptionInfo) {
-      // Calculate what percentage the projected tokens would be of subscription limit
-      const projectedPercentage = (burnRateInfo.projection.totalTokens / subscriptionInfo.tokensLimit) * 100;
+    if (subscriptionInfo?.projection && subscriptionInfo.tokensLimit > 0) {
+      // Use ccusage's projection data directly - matches their color logic exactly
+      const projectedPercentage = (subscriptionInfo.projection.totalTokens / subscriptionInfo.tokensLimit) * 100;
       
       if (projectedPercentage > 100) {
         color = this.config.colors.critical; // Red when projection exceeds limit

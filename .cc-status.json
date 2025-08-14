@@ -20,7 +20,7 @@
     }
   },
   "format": {
-    "separator": "  ",
+    "separator": " ",
     "icons": {
       "git": "⑂",
       "subscription": "↻",

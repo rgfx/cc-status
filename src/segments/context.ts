@@ -21,9 +21,6 @@ export class ContextService {
   private readonly MAX_CONTEXT_TOKENS = 200000; // Default Claude context limit
 
   async getContextInfo(transcriptPath?: string): Promise<ContextInfo | null> {
-    console.error('DEBUG: transcript_path =', transcriptPath);
-    console.error('DEBUG: file exists =', transcriptPath ? fs.existsSync(transcriptPath) : false);
-    
     if (!transcriptPath || !fs.existsSync(transcriptPath)) {
       return null; // No fake data - return null when no real data available
     }

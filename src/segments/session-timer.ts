@@ -42,13 +42,16 @@ export class SessionTimerService {
         timeRemaining = `${remainingSeconds}s`;
       }
       
-      // Format reset time (HH:MM:SS AM/PM)
-      const resetTimeFormatted = resetTime.toLocaleTimeString('en-US', {
+      // Format reset time (HH:MM:SSAM/PM) - no space before AM/PM
+      let resetTimeFormatted = resetTime.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         second: '2-digit',
         hour12: true
       });
+      
+      // Remove space before AM/PM
+      resetTimeFormatted = resetTimeFormatted.replace(' AM', 'AM').replace(' PM', 'PM');
       
       // Check if near reset (less than 30 minutes)
       const isNearReset = remainingSeconds < 30 * 60;

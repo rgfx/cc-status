@@ -50,7 +50,7 @@ export const DEFAULT_CONFIG: Config = {
       git: "⑂",
       subscription: "↻",
       context: "◐",
-      burnRate: "▲",
+      burnRate: "✽",
       timeLeft: "⏱",
       sessionTimer: "◷",
       dailyCost: "$"

@@ -3,6 +3,7 @@ import { json } from "node:stream/consumers";
 import { GitService } from "./segments/git.js";
 import { SubscriptionService } from "./segments/subscription.js";
 import { ContextService } from "./segments/context.js";
+import { BurnRateService } from "./segments/burn-rate.js";
 import { SessionTimerService } from "./segments/session-timer.js";
 import { getDailyCostInfo } from "./segments/daily-cost.js";
 import { StatusRenderer, ClaudeHookData } from "./renderer.js";
@@ -78,6 +79,7 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     const gitService = new GitService();
     const subscriptionService = new SubscriptionService();
     const contextService = new ContextService();
+    const burnRateService = new BurnRateService();
     const sessionTimerService = new SessionTimerService();
     const renderer = new StatusRenderer(finalConfig);
 
@@ -101,8 +103,14 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     } else {
       promises.push(Promise.resolve(null));
     }
+    
+    if (finalConfig.segments.burnRate.enabled) {
+      promises.push(burnRateService.getBurnRateInfo(hookData.transcript_path));
+    } else {
+      promises.push(Promise.resolve(null));
+    }
 
-    const [gitInfo, subscriptionInfo, contextInfo] = await Promise.all(promises);
+    const [gitInfo, subscriptionInfo, contextInfo, burnRateInfo] = await Promise.all(promises);
 
     // Get session timer info if enabled
     let sessionTimerInfo = null;
@@ -125,7 +133,7 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     }
 
     // Render and output
-    const statusline = renderer.render(gitInfo, subscriptionInfo, contextInfo, sessionTimerInfo, dailyCostInfo);
+    const statusline = renderer.render(gitInfo, subscriptionInfo, contextInfo, burnRateInfo, sessionTimerInfo, dailyCostInfo);
     console.log(statusline);
 
   } catch (error) {

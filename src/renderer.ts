@@ -1,6 +1,7 @@
 import { GitInfo } from "./segments/git.js";
 import { SubscriptionInfo } from "./segments/subscription.js";
 import { ContextInfo } from "./segments/context.js";
+import { BurnRateInfo } from "./segments/burn-rate.js";
 import { SessionTimerInfo } from "./segments/session-timer.js";
 import { DailyCostInfo } from "./segments/daily-cost.js";
 import { Config } from "./config/config.js";
@@ -76,7 +77,7 @@ export class StatusRenderer {
     // Rest of text in neutral grey
     return colorText(`${subIcon} `, this.config.colors.neutral) + 
            coloredPercentage + 
-           colorText(` (${tokensUsedFormatted}/${tokensLimitFormatted})`, this.config.colors.neutral);
+           colorText(` ${tokensUsedFormatted}/${tokensLimitFormatted}`, this.config.colors.neutral);
   }
 
   renderContext(contextInfo: ContextInfo | null): string {
@@ -97,15 +98,37 @@ export class StatusRenderer {
     return colorText(text, color);
   }
 
-  renderDummyBurnRate(): string {
+  renderBurnRate(burnRateInfo: BurnRateInfo | null, subscriptionInfo: SubscriptionInfo | null): string {
     const { burnRate: burnConfig } = this.config.segments;
     if (!burnConfig.enabled) return "";
 
     const { burnRate: burnIcon } = this.config.format.icons;
     
-    // Dummy burn rate data
-    const text = `${burnIcon} $1.20/h`;
-    return colorText(text, this.config.colors.neutral);
+    // Just show the icon - no cost value
+    const text = burnIcon;
+    
+    // Color based on projection vs subscription limit (like ccusage)
+    let color = this.config.colors.neutral;
+    
+    if (burnRateInfo?.projection && subscriptionInfo) {
+      // Calculate what percentage the projected tokens would be of subscription limit
+      const projectedPercentage = (burnRateInfo.projection.totalTokens / subscriptionInfo.tokensLimit) * 100;
+      
+      if (projectedPercentage > 100) {
+        color = this.config.colors.critical; // Red when projection exceeds limit
+      } else if (projectedPercentage > 80) {
+        color = this.config.colors.warning; // Yellow when projection approaches limit
+      }
+    } else if (subscriptionInfo) {
+      // Fallback to current usage if no projection available
+      if (subscriptionInfo.percentage >= 100) {
+        color = this.config.colors.critical;
+      } else if (subscriptionInfo.percentage >= 80) {
+        color = this.config.colors.warning;
+      }
+    }
+    
+    return colorText(text, color);
   }
 
   renderDummyTimeLeft(): string {
@@ -125,8 +148,8 @@ export class StatusRenderer {
 
     const { sessionTimer: timerIcon } = this.config.format.icons;
     
-    // Format: ◷ 3h (11:00:00 PM) - entire text in neutral grey
-    const text = `${timerIcon} ${sessionTimerInfo.timeRemaining} (${sessionTimerInfo.resetTime})`;
+    // Format: ◷ 3h 11:00:00 PM - entire text in neutral grey
+    const text = `${timerIcon} ${sessionTimerInfo.timeRemaining} ${sessionTimerInfo.resetTime}`;
     
     return colorText(text, this.config.colors.neutral);
   }
@@ -143,14 +166,14 @@ export class StatusRenderer {
     return colorText(text, this.config.colors.neutral);
   }
 
-  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: ContextInfo | null, sessionTimerInfo?: SessionTimerInfo | null, dailyCostInfo?: DailyCostInfo | null): string {
+  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: ContextInfo | null, burnRateInfo?: BurnRateInfo | null, sessionTimerInfo?: SessionTimerInfo | null, dailyCostInfo?: DailyCostInfo | null): string {
     const segments = [
       this.renderGit(gitInfo),
       this.renderSubscription(subscriptionInfo),
       this.renderContext(contextInfo),
-      this.renderDummyBurnRate(),
       this.renderSessionTimer(sessionTimerInfo),
-      this.renderDailyCost(dailyCostInfo)
+      this.renderDailyCost(dailyCostInfo),
+      this.renderBurnRate(burnRateInfo, subscriptionInfo)
     ].filter(segment => segment.length > 0);
 
     // Add color reset at the beginning to fix PowerShell first-segment issue

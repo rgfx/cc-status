@@ -10,7 +10,7 @@
       "showTokens": true
     },
     "context": {
-      "enabled": false
+      "enabled": true
     },
     "burnRate": {
       "enabled": false
@@ -24,7 +24,7 @@
     "icons": {
       "git": "⑂",
       "subscription": "↻",
-      "context": "◷",
+      "context": "◐",
       "burnRate": "⟢",
       "timeLeft": "⏱"
     }

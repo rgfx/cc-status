@@ -1,119 +1,101 @@
 import fs from "node:fs";
-import path from "node:path";
-import os from "node:os";
 
 export interface ContextInfo {
-  tokensUsed: number;
-  tokensLimit: number;
   percentage: number;
   isNearLimit: boolean;
+}
+
+interface TranscriptEntry {
+  message?: {
+    usage?: {
+      input_tokens?: number;
+      cache_read_input_tokens?: number;
+      cache_creation_input_tokens?: number;
+    };
+  };
+  isSidechain?: boolean;
+  timestamp?: string;
 }
 
 export class ContextService {
   private readonly MAX_CONTEXT_TOKENS = 200000; // Default Claude context limit
 
-  async getContextInfo(sessionId?: string): Promise<ContextInfo | null> {
-    try {
-      const transcriptPath = this.findTranscriptFile(sessionId);
-      
-      if (!transcriptPath || !fs.existsSync(transcriptPath)) {
-        return this.getDefaultContextInfo();
-      }
-
-      const tokensUsed = await this.calculateTokensFromTranscript(transcriptPath);
-      const percentage = (tokensUsed / this.MAX_CONTEXT_TOKENS) * 100;
-      const isNearLimit = percentage > 80;
-
-      return {
-        tokensUsed,
-        tokensLimit: this.MAX_CONTEXT_TOKENS,
-        percentage: Math.round(percentage * 10) / 10,
-        isNearLimit
-      };
-    } catch (error) {
-      return this.getDefaultContextInfo();
+  async getContextInfo(transcriptPath?: string): Promise<ContextInfo | null> {
+    console.error('DEBUG: transcript_path =', transcriptPath);
+    console.error('DEBUG: file exists =', transcriptPath ? fs.existsSync(transcriptPath) : false);
+    
+    if (!transcriptPath || !fs.existsSync(transcriptPath)) {
+      return null; // No fake data - return null when no real data available
     }
-  }
 
-  private findTranscriptFile(sessionId?: string): string | null {
     try {
-      const claudeDir = path.join(os.homedir(), '.claude');
-      const transcriptsDir = path.join(claudeDir, 'transcripts');
-      
-      if (!fs.existsSync(transcriptsDir)) {
+      const contextTokens = this.calculateContextTokens(transcriptPath);
+      if (contextTokens === null) {
         return null;
       }
 
-      if (sessionId) {
-        // Look for specific session transcript
-        const sessionFile = path.join(transcriptsDir, `${sessionId}.jsonl`);
-        if (fs.existsSync(sessionFile)) {
-          return sessionFile;
-        }
-      }
+      const percentage = Math.min(100, Math.max(0, Math.round((contextTokens / this.MAX_CONTEXT_TOKENS) * 100)));
+      const isNearLimit = percentage > 80;
 
-      // Find the most recent transcript file
-      const files = fs.readdirSync(transcriptsDir)
-        .filter(file => file.endsWith('.jsonl'))
-        .map(file => ({
-          name: file,
-          path: path.join(transcriptsDir, file),
-          mtime: fs.statSync(path.join(transcriptsDir, file)).mtime
-        }))
-        .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
-
-      return files.length > 0 ? files[0].path : null;
-    } catch {
+      return {
+        percentage,
+        isNearLimit
+      };
+    } catch (error) {
       return null;
     }
   }
 
-  private async calculateTokensFromTranscript(transcriptPath: string): Promise<number> {
+  private calculateContextTokens(transcriptPath: string): number | null {
     try {
       const content = fs.readFileSync(transcriptPath, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.trim());
-      
-      let totalTokens = 0;
-      
+      if (!content) {
+        return null;
+      }
+
+      const lines = content.trim().split('\n');
+      if (lines.length === 0) {
+        return null;
+      }
+
+      let mostRecentEntry: TranscriptEntry | null = null;
+      let mostRecentTime = 0;
+
+      // Find the most recent non-sidechain entry with usage data
       for (const line of lines) {
+        if (!line.trim()) continue;
+
         try {
-          const entry = JSON.parse(line);
-          
-          // Count tokens from user messages and assistant responses
-          if (entry.type === 'user_message' && entry.content) {
-            totalTokens += this.estimateTokens(entry.content);
-          } else if (entry.type === 'assistant_message' && entry.content) {
-            totalTokens += this.estimateTokens(entry.content);
-          } else if (entry.type === 'tool_use' && entry.content) {
-            totalTokens += this.estimateTokens(JSON.stringify(entry.content));
-          } else if (entry.type === 'tool_result' && entry.content) {
-            totalTokens += this.estimateTokens(entry.content);
+          const entry: TranscriptEntry = JSON.parse(line);
+
+          if (!entry.message?.usage?.input_tokens) continue;
+          if (entry.isSidechain === true) continue;
+          if (!entry.timestamp) continue;
+
+          const entryTime = new Date(entry.timestamp).getTime();
+          if (entryTime > mostRecentTime) {
+            mostRecentTime = entryTime;
+            mostRecentEntry = entry;
           }
         } catch {
           // Skip malformed JSON lines
           continue;
         }
       }
-      
-      return totalTokens;
-    } catch {
-      return 0;
+
+      if (mostRecentEntry?.message?.usage) {
+        const usage = mostRecentEntry.message.usage;
+        const contextLength = 
+          (usage.input_tokens || 0) +
+          (usage.cache_read_input_tokens || 0) +
+          (usage.cache_creation_input_tokens || 0);
+
+        return contextLength;
+      }
+
+      return null;
+    } catch (error) {
+      return null;
     }
-  }
-
-  private estimateTokens(text: string): number {
-    // Rough estimation: ~4 characters per token for English text
-    // This is a simplified approximation - actual tokenization is more complex
-    return Math.ceil(text.length / 4);
-  }
-
-  private getDefaultContextInfo(): ContextInfo {
-    // Return reasonable defaults when transcript unavailable
-    return {
-      tokensUsed: 45000,
-      tokensLimit: this.MAX_CONTEXT_TOKENS,
-      percentage: 22.5,
-      isNearLimit: false
-    };
   }
 }

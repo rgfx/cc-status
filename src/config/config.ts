@@ -38,7 +38,7 @@ export const DEFAULT_CONFIG: Config = {
   segments: {
     git: { enabled: true, color: "neutral" },
     subscription: { enabled: true, color: "auto" },
-    context: { enabled: true, color: "auto" },
+    context: { enabled: true, color: "neutral" },
     burnRate: { enabled: true, color: "neutral" },
     timeLeft: { enabled: true, color: "neutral" },
     sessionTimer: { enabled: true, color: "neutral" },
@@ -49,7 +49,7 @@ export const DEFAULT_CONFIG: Config = {
     icons: {
       git: "⑂",
       subscription: "↻",
-      context: "◷",
+      context: "◐",
       burnRate: "▲",
       timeLeft: "⏱",
       sessionTimer: "◷",

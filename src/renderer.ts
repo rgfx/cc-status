@@ -1,5 +1,6 @@
 import { GitInfo } from "./segments/git.js";
 import { SubscriptionInfo } from "./segments/subscription.js";
+import { ContextInfo } from "./segments/context.js";
 import { SessionTimerInfo } from "./segments/session-timer.js";
 import { DailyCostInfo } from "./segments/daily-cost.js";
 import { Config } from "./config/config.js";
@@ -78,15 +79,22 @@ export class StatusRenderer {
            colorText(` (${tokensUsedFormatted}/${tokensLimitFormatted})`, this.config.colors.neutral);
   }
 
-  renderDummyContext(): string {
+  renderContext(contextInfo: ContextInfo | null): string {
     const { context: contextConfig } = this.config.segments;
-    if (!contextConfig.enabled) return "";
+    if (!contextConfig.enabled || !contextInfo) return "";
 
     const { context: contextIcon } = this.config.format.icons;
     
-    // Dummy context data - 76% remaining
-    const text = `${contextIcon} 45k (76%)`;
-    return colorText(text, this.config.colors.neutral);
+    // Format: ◐ 76%
+    const text = `${contextIcon} ${contextInfo.percentage}%`;
+    
+    // Color based on usage level
+    let color = this.config.colors.neutral;
+    if (contextInfo.isNearLimit) {
+      color = this.config.colors.warning;
+    }
+    
+    return colorText(text, color);
   }
 
   renderDummyBurnRate(): string {
@@ -135,11 +143,11 @@ export class StatusRenderer {
     return colorText(text, this.config.colors.neutral);
   }
 
-  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: any, sessionTimerInfo?: SessionTimerInfo | null, dailyCostInfo?: DailyCostInfo | null): string {
+  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: ContextInfo | null, sessionTimerInfo?: SessionTimerInfo | null, dailyCostInfo?: DailyCostInfo | null): string {
     const segments = [
       this.renderGit(gitInfo),
       this.renderSubscription(subscriptionInfo),
-      this.renderDummyContext(),
+      this.renderContext(contextInfo),
       this.renderDummyBurnRate(),
       this.renderSessionTimer(sessionTimerInfo),
       this.renderDailyCost(dailyCostInfo)

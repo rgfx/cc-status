@@ -3,16 +3,16 @@
 A focused, minimal statusline for Claude Code that shows what matters most in a clean single-line format.
 
 ```
-⑂ main ✓  ↻ 48.6% (9404.3k/19342.8k)  ◷ 2h 15m (11:00:00 PM)  $37.48
+⑂ main ✓  ↻ 48.6% (9404.3k/19342.8k)  ◐ 15%  ◷ 4h 53m (4:00:00 AM)  $41.07
 ```
 
 ## Features
 
 - **Real ccusage integration** - Live subscription usage with dynamic limits  
+- **Real context tracking** - Shows actual Claude memory usage from transcript data
 - **Daily cost tracking** - Shows actual spending for today using ccusage data
 - **Session timer** - Time until 5-hour block reset with countdown
 - **Git status** - Branch, clean/dirty state, ahead/behind counts
-- **Context monitoring** - Token usage from Claude Code transcripts  
 - **Burn rate tracking** - Cost and token usage per hour
 - **Time projections** - Hours remaining until limits
 - **Configurable segments** - Enable/disable any component
@@ -108,6 +108,23 @@ $37.48
 - **Real costs** - Shows actual calculated costs, not estimates  
 - **Timezone aware** - Properly handles local timezone for daily calculations
 - **Configurable** - Can be disabled via `"dailyCost": { "enabled": false }`
+
+### Real Context Tracking
+
+The context feature shows actual Claude memory usage from transcript data:
+
+```
+◐ 15%
+```
+
+- **Real data** - Reads from actual Claude Code transcript files via hook data
+- **Accurate calculation** - Uses Claude's own token counting (input + cache tokens)
+- **Context-aware** - Shows percentage of 200k context window used
+- **Smart filtering** - Ignores sidechain entries, finds most recent usage
+- **Visual indicator** - `◐` (half-filled circle) represents partial memory usage
+- **Color coding** - Neutral grey normally, yellow when approaching context limit (>80%)
+
+Only displays when running in actual Claude Code sessions with transcript access.
 
 ## Architecture
 

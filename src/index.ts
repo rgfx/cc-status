@@ -97,7 +97,7 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     }
     
     if (finalConfig.segments.context.enabled) {
-      promises.push(contextService.getContextInfo(hookData.session_id));
+      promises.push(contextService.getContextInfo(hookData.transcript_path));
     } else {
       promises.push(Promise.resolve(null));
     }

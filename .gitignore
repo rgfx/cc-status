@@ -35,3 +35,6 @@ coverage/
 
 # Reference repositories for analysis
 reference/
+
+# Project instructions (local only)
+CLAUDE.md

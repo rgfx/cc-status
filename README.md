@@ -78,6 +78,28 @@ export CC_STATUS_CONTEXT_ENABLED=true
 - **Graceful fallbacks** when data unavailable
 - **Owloops-inspired** configuration system with priority hierarchy
 
+## Credits & Inspiration
+
+This project was inspired by and learned from several excellent statusline implementations:
+
+### [Owloops/claude-powerline](https://github.com/Owloops/claude-powerline)
+- **Excellent git service implementation** and multi-line layout system
+- **Context monitoring** from transcript files  
+- **Color theming architecture** and configuration patterns
+- **📝 Note**: If you're on a **token-based plan** (not subscription), Owloops' claude-powerline may be better suited as it reads directly from transcript files rather than requiring ccusage integration
+
+### [chongdashu/cc-statusline](https://github.com/chongdashu/cc-statusline)  
+- **Direct ccusage subprocess integration** (`npx ccusage blocks --json`)
+- **Performance-focused bash implementation**
+- **Real-time usage tracking** approach and configuration patterns
+
+### [ryoppippi/ccusage](https://github.com/ryoppippi/ccusage)
+- **Source of truth** for all Claude usage data and billing block logic
+- **Block limit calculation methods** that we implemented
+- **Live monitoring** implementation (`--live` flag)
+
+Special thanks to these developers for their innovative work on Claude Code tooling!
+
 ## License
 
 MIT

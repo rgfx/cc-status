@@ -2,6 +2,8 @@
 
 A focused, minimal statusline for Claude Code that displays real usage data in a clean single-line format.
 
+> **Note**: This tool is designed for **Claude subscription plans** that use ccusage for usage tracking. If you're on a token-based plan, consider [claude-powerline](https://github.com/Owloops/claude-powerline) instead.
+
 ```
 ⑂ main ✓ ↻ 35.9% 16.3M/45.6M ◐ 77% ◷ 3:36 1PM $7.28 ✽
 ```

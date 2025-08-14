@@ -3,12 +3,14 @@
 A focused, minimal statusline for Claude Code that shows what matters most in a clean single-line format.
 
 ```
-⑂ main ✓  ↻ 48.6% (9404.3k/19342.8k)  ◷ 45k (76%)  ⟢ $1.20/h  ⏱ 16h left
+⑂ main ✓  ↻ 48.6% (9404.3k/19342.8k)  ◷ 2h 15m (11:00:00 PM)  $37.48
 ```
 
 ## Features
 
-- **Real ccusage integration** - Live subscription usage with dynamic limits
+- **Real ccusage integration** - Live subscription usage with dynamic limits  
+- **Daily cost tracking** - Shows actual spending for today using ccusage data
+- **Session timer** - Time until 5-hour block reset with countdown
 - **Git status** - Branch, clean/dirty state, ahead/behind counts
 - **Context monitoring** - Token usage from Claude Code transcripts  
 - **Burn rate tracking** - Cost and token usage per hour
@@ -93,6 +95,19 @@ The git segment shows branch name and status with the following indicators:
 ⑂ main ✓ ↑1     # Clean repository, 1 commit ahead of remote
 ⑂ feature ⚠     # Merge conflicts on feature branch
 ```
+
+### Daily Cost Tracking
+
+The daily cost feature shows your actual spending for today, calculated using ccusage's daily aggregation:
+
+```
+$37.48
+```
+
+- **Live data** - Uses `ccusage daily` command for accurate daily totals
+- **Real costs** - Shows actual calculated costs, not estimates  
+- **Timezone aware** - Properly handles local timezone for daily calculations
+- **Configurable** - Can be disabled via `"dailyCost": { "enabled": false }`
 
 ## Architecture
 

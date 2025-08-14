@@ -1,6 +1,7 @@
 import { GitInfo } from "./segments/git.js";
 import { SubscriptionInfo } from "./segments/subscription.js";
 import { SessionTimerInfo } from "./segments/session-timer.js";
+import { DailyCostInfo } from "./segments/daily-cost.js";
 import { Config } from "./config/config.js";
 import { colorText } from "./utils/colors.js";
 
@@ -122,13 +123,26 @@ export class StatusRenderer {
     return colorText(text, this.config.colors.neutral);
   }
 
-  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: any, sessionTimerInfo?: SessionTimerInfo | null): string {
+  renderDailyCost(dailyCostInfo: DailyCostInfo | null): string {
+    const { dailyCost: costConfig } = this.config.segments;
+    if (!costConfig.enabled || !dailyCostInfo) return "";
+
+    const { dailyCost: costIcon } = this.config.format.icons;
+    
+    // Format: $25.32
+    const text = `${costIcon}${dailyCostInfo.formattedCost}`;
+    
+    return colorText(text, this.config.colors.neutral);
+  }
+
+  render(gitInfo: GitInfo | null, subscriptionInfo: SubscriptionInfo | null, contextInfo?: any, sessionTimerInfo?: SessionTimerInfo | null, dailyCostInfo?: DailyCostInfo | null): string {
     const segments = [
       this.renderGit(gitInfo),
       this.renderSubscription(subscriptionInfo),
       this.renderDummyContext(),
       this.renderDummyBurnRate(),
-      this.renderSessionTimer(sessionTimerInfo)
+      this.renderSessionTimer(sessionTimerInfo),
+      this.renderDailyCost(dailyCostInfo)
     ].filter(segment => segment.length > 0);
 
     // Add color reset at the beginning to fix PowerShell first-segment issue

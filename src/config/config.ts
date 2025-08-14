@@ -11,6 +11,7 @@ export interface Config {
     burnRate: SegmentConfig;
     timeLeft: SegmentConfig;
     sessionTimer: SegmentConfig;
+    dailyCost: SegmentConfig;
   };
   format: {
     separator: string;
@@ -21,6 +22,7 @@ export interface Config {
       burnRate: string;
       timeLeft: string;
       sessionTimer: string;
+      dailyCost: string;
     };
   };
   colors: {
@@ -39,7 +41,8 @@ export const DEFAULT_CONFIG: Config = {
     context: { enabled: true, color: "auto" },
     burnRate: { enabled: true, color: "neutral" },
     timeLeft: { enabled: true, color: "neutral" },
-    sessionTimer: { enabled: true, color: "lightBlue" }
+    sessionTimer: { enabled: true, color: "neutral" },
+    dailyCost: { enabled: true, color: "neutral" }
   },
   format: {
     separator: " ",
@@ -47,9 +50,10 @@ export const DEFAULT_CONFIG: Config = {
       git: "⑂",
       subscription: "↻",
       context: "◷",
-      burnRate: "⟢",
+      burnRate: "▲",
       timeLeft: "⏱",
-      sessionTimer: "◷"
+      sessionTimer: "◷",
+      dailyCost: "$"
     }
   },
   colors: {

@@ -4,6 +4,7 @@ import { GitService } from "./segments/git.js";
 import { SubscriptionService } from "./segments/subscription.js";
 import { ContextService } from "./segments/context.js";
 import { SessionTimerService } from "./segments/session-timer.js";
+import { getDailyCostInfo } from "./segments/daily-cost.js";
 import { StatusRenderer, ClaudeHookData } from "./renderer.js";
 import { ConfigLoader } from "./config/config-loader.js";
 
@@ -117,8 +118,14 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
       }
     }
 
+    // Get daily cost info if enabled
+    let dailyCostInfo = null;
+    if (finalConfig.segments.dailyCost.enabled) {
+      dailyCostInfo = await getDailyCostInfo();
+    }
+
     // Render and output
-    const statusline = renderer.render(gitInfo, subscriptionInfo, contextInfo, sessionTimerInfo);
+    const statusline = renderer.render(gitInfo, subscriptionInfo, contextInfo, sessionTimerInfo, dailyCostInfo);
     console.log(statusline);
 
   } catch (error) {

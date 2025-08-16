@@ -107,25 +107,19 @@ export class StatusRenderer {
     // Just show the icon - no cost value
     const text = burnIcon;
     
-    // Color based on ccusage's projection data (like ccusage does)
+    // Color based on actual burn rate thresholds (tokens per minute)
     let color = this.config.colors.neutral;
     
-    if (subscriptionInfo?.projection && subscriptionInfo.tokensLimit > 0) {
-      // Use ccusage's projection data directly - matches their color logic exactly
-      const projectedPercentage = (subscriptionInfo.projection.totalTokens / subscriptionInfo.tokensLimit) * 100;
+    if (burnRateInfo) {
+      // Use tokensPerMinuteForIndicator (non-cache tokens) for thresholds
+      const burnRate = burnRateInfo.tokensPerMinuteForIndicator;
       
-      if (projectedPercentage > 100) {
-        color = this.config.colors.critical; // Red when projection exceeds limit
-      } else if (projectedPercentage > 80) {
-        color = this.config.colors.warning; // Yellow when projection approaches limit
+      if (burnRate >= 1000) {
+        color = this.config.colors.critical; // Red for high burn rate (>=1000 tokens/min)
+      } else if (burnRate >= 500) {
+        color = this.config.colors.warning; // Yellow for moderate burn rate (>=500 tokens/min)
       }
-    } else if (subscriptionInfo) {
-      // Fallback to current usage if no projection available
-      if (subscriptionInfo.percentage >= 100) {
-        color = this.config.colors.critical;
-      } else if (subscriptionInfo.percentage >= 80) {
-        color = this.config.colors.warning;
-      }
+      // Green/neutral for low burn rate (<500 tokens/min)
     }
     
     return colorText(text, color);

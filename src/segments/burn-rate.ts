@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { TranscriptParser } from "../services/transcript-parser.js";
 
 export interface BurnRateInfo {
   tokensPerMinute: number;
@@ -33,6 +34,7 @@ export class BurnRateService {
   
   // Claude's 5-hour session duration in milliseconds
   private readonly SESSION_DURATION_MS = 5 * 60 * 60 * 1000;
+  private transcriptParser = new TranscriptParser();
 
   async getBurnRateInfo(transcriptPath?: string): Promise<BurnRateInfo | null> {
     if (!transcriptPath || !fs.existsSync(transcriptPath)) {
@@ -40,15 +42,83 @@ export class BurnRateService {
     }
 
     try {
-      const entries = this.parseTranscriptEntries(transcriptPath);
-      if (entries.length < 2) {
+      // Use transcript parser to get current 5-hour block entries (consistent with subscription)
+      const allEntries = await this.transcriptParser.parseTranscriptFile(transcriptPath);
+      const currentBlock = this.getCurrentActiveBlockEntries(allEntries);
+      
+      if (currentBlock.length < 2) {
         return null; // Need at least 2 entries to calculate rate
       }
 
-      return this.calculateBurnRate(entries);
+      return this.calculateBurnRate(currentBlock);
     } catch (error) {
       return null;
     }
+  }
+
+  /**
+   * Get current active 5-hour block entries (matches transcript parser logic)
+   */
+  private getCurrentActiveBlockEntries(entries: any[]): TranscriptEntry[] {
+    if (entries.length === 0) return [];
+    
+    // Convert to our TranscriptEntry format and filter
+    const validEntries: TranscriptEntry[] = [];
+    for (const entry of entries) {
+      if (entry.isSidechain === true || !entry.message?.usage || !entry.timestamp) {
+        continue;
+      }
+      
+      const usage = entry.message.usage;
+      const hasTokens = (usage.input_tokens || 0) > 0 || 
+                       (usage.output_tokens || 0) > 0 || 
+                       (usage.cache_creation_input_tokens || 0) > 0 || 
+                       (usage.cache_read_input_tokens || 0) > 0;
+      
+      if (hasTokens) {
+        validEntries.push(entry as TranscriptEntry);
+      }
+    }
+    
+    if (validEntries.length === 0) return [];
+    
+    // Sort by timestamp
+    const sortedEntries = validEntries.sort((a, b) => 
+      new Date(a.timestamp!).getTime() - new Date(b.timestamp!).getTime()
+    );
+    
+    const now = new Date();
+    const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+    
+    // Find the most recent entry to determine current block
+    const latestEntry = sortedEntries[sortedEntries.length - 1];
+    const latestTime = new Date(latestEntry.timestamp!);
+    
+    // If latest activity was more than 5 hours ago, no current block
+    if (now.getTime() - latestTime.getTime() > FIVE_HOURS_MS) {
+      return [];
+    }
+    
+    // Find current block start time by working backwards
+    let currentBlockStart = new Date(latestTime);
+    
+    for (let i = sortedEntries.length - 2; i >= 0; i--) {
+      const entryTime = new Date(sortedEntries[i].timestamp!);
+      const timeDiff = latestTime.getTime() - entryTime.getTime();
+      
+      if (timeDiff > FIVE_HOURS_MS) {
+        // Found a gap - current block starts after this gap
+        break;
+      }
+      currentBlockStart = entryTime;
+    }
+    
+    // Collect all entries in the current 5-hour block
+    return sortedEntries.filter(entry => {
+      const entryTime = new Date(entry.timestamp!);
+      const timeDiff = latestTime.getTime() - entryTime.getTime();
+      return timeDiff <= FIVE_HOURS_MS && entryTime >= currentBlockStart;
+    });
   }
 
   private parseTranscriptEntries(transcriptPath: string): TranscriptEntry[] {

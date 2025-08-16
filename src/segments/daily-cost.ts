@@ -1,7 +1,5 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
+import { TranscriptParser } from "../services/transcript-parser";
+import { PricingService } from "../services/pricing";
 
 export interface DailyCostInfo {
   cost: number;
@@ -10,26 +8,27 @@ export interface DailyCostInfo {
 
 export async function getDailyCostInfo(): Promise<DailyCostInfo | null> {
   try {
-    // Get today's date in local timezone, then format for ccusage
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const dateStr = `${year}${month}${day}`; // YYYYMMDD format
+    const transcriptParser = new TranscriptParser();
     
-    const { stdout } = await execAsync(`npx ccusage daily --since ${dateStr} --until ${dateStr} --json`);
-    const ccusageData = JSON.parse(stdout);
+    // Get ALL sessions from today, not just the current active session
+    const allDailyUsage = await transcriptParser.getAllSessionsForToday();
     
-    // Get today's cost from filtered daily data
-    const todayData = ccusageData.daily?.[0]; // Should be only one day
-    const dailyCost = todayData?.totalCost || 0;
+    let totalCost = allDailyUsage.totalCost;
+    
+    // Calculate costs for entries that don't have costUSD already
+    for (const entry of allDailyUsage.entries) {
+      if (typeof entry.costUSD !== 'number') {
+        const calculatedCost = await PricingService.calculateCostForEntry(entry);
+        totalCost += calculatedCost;
+      }
+    }
 
     return {
-      cost: dailyCost,
-      formattedCost: dailyCost.toFixed(2)
+      cost: totalCost,
+      formattedCost: totalCost.toFixed(2)
     };
   } catch (error) {
-    console.error('Error fetching daily cost:', error);
+    console.debug('Error fetching daily cost:', error);
     return null;
   }
 }

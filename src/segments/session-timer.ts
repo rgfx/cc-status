@@ -1,3 +1,5 @@
+import { ResetTimeDetectionService } from "../services/reset-time-detection";
+
 export interface SessionTimerInfo {
   timeRemaining: string;
   resetTime: string;
@@ -5,56 +7,21 @@ export interface SessionTimerInfo {
 }
 
 export class SessionTimerService {
-  getSessionTimer(activeBlock: any): SessionTimerInfo | null {
-    if (!activeBlock) {
-      return null;
-    }
+  private resetTimeDetection = new ResetTimeDetectionService();
 
+  async getSessionTimer(): Promise<SessionTimerInfo | null> {
     try {
-      // Get reset time from ccusage block (usageLimitResetTime or endTime)
-      const resetTimeStr = activeBlock.usageLimitResetTime || activeBlock.endTime;
-      
-      if (!resetTimeStr) {
-        return null;
-      }
-
-      const resetTime = new Date(resetTimeStr);
-      const now = new Date();
-      
-      // Calculate remaining time in seconds
-      const remainingMs = resetTime.getTime() - now.getTime();
-      const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
-      
-      // Convert to hours and minutes
-      const hours = Math.floor(remainingSeconds / 3600);
-      const minutes = Math.floor((remainingSeconds % 3600) / 60);
+      // Get reset time info from our detection service
+      const resetInfo = await this.resetTimeDetection.getResetTime();
       
       // Format time remaining in compact format
-      let timeRemaining: string;
-      if (hours > 0) {
-        // Use H:MM format for hours and minutes (e.g., "3:39")
-        timeRemaining = `${hours}:${minutes.toString().padStart(2, '0')}`;
-      } else if (minutes > 0) {
-        timeRemaining = `${minutes}m`;
-      } else {
-        timeRemaining = `${remainingSeconds}s`;
-      }
+      const timeRemaining = this.resetTimeDetection.formatTimeRemaining(resetInfo.timeRemaining);
       
-      // Format reset time like ccusage: use 2-digit hour format then remove leading zeros
-      let resetTimeFormatted = resetTime.toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
+      // Format reset time in compact format
+      const resetTimeFormatted = this.resetTimeDetection.formatResetTime(resetInfo.resetTime);
       
-      // Remove minutes and seconds to get compact format like ccusage (4AM, not 4:00AM)
-      resetTimeFormatted = resetTimeFormatted.replace(/:\d{2}(:\d{2})?\s*(AM|PM)/, '$2');
-      
-      // Remove leading zero from hour (04AM -> 4AM) to match ccusage compact style
-      resetTimeFormatted = resetTimeFormatted.replace(/^0/, '');
-      
-      // Check if near reset (less than 30 minutes)
-      const isNearReset = remainingSeconds < 30 * 60;
+      // Check if near reset
+      const isNearReset = this.resetTimeDetection.isNearReset(resetInfo.timeRemaining);
       
       return {
         timeRemaining,
@@ -62,7 +29,16 @@ export class SessionTimerService {
         isNearReset
       };
     } catch (error) {
+      console.debug('Error getting session timer:', error);
       return null;
     }
+  }
+
+  // Legacy method for backward compatibility - now delegates to async version
+  getSessionTimerSync(activeBlock: any): SessionTimerInfo | null {
+    // This method is deprecated but kept for compatibility
+    // Call the async version but note that it returns null since we can't await
+    console.warn('getSessionTimerSync is deprecated, use getSessionTimer() instead');
+    return null;
   }
 }

@@ -1,4 +1,7 @@
-import { execSync } from "node:child_process";
+import { TranscriptParser } from "../services/transcript-parser";
+import { LimitDetectionService } from "../services/limit-detection";
+import { ResetTimeDetectionService } from "../services/reset-time-detection";
+import { PricingService } from "../services/pricing";
 
 export interface SubscriptionInfo {
   percentage: number;
@@ -12,88 +15,71 @@ export interface SubscriptionInfo {
   } | null;
 }
 
-interface CcusageBlock {
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_tokens: number;
-  total_cost: number;
-  limits?: {
-    total_tokens?: number;
-  };
-}
-
 export class SubscriptionService {
-  async getSubscriptionInfo(): Promise<SubscriptionInfo | null> {
-    try {
-      const ccusageData = await this.callCcusage();
-      
-      if (!ccusageData || !Array.isArray(ccusageData.blocks) || ccusageData.blocks.length === 0) {
-        // Fallback to dummy data if ccusage fails
-        return this.getFallbackData();
-      }
+  private transcriptParser = new TranscriptParser();
+  private limitDetection = new LimitDetectionService();
+  private resetTimeDetection = new ResetTimeDetectionService();
 
-      // Find the active block (current usage period)
-      const activeBlock = ccusageData.blocks.find((block: any) => block.isActive === true);
+  async getSubscriptionInfo(sessionId?: string): Promise<SubscriptionInfo | null> {
+    try {
+      // Get current session usage from transcript files
+      const dailyUsage = await this.transcriptParser.getDailyUsage(sessionId);
       
-      if (!activeBlock) {
-        return this.getFallbackData();
-      }
+      // Get estimated daily limit from historical analysis
+      const limitInfo = await this.limitDetection.getDailyTokenLimit();
       
-      const tokensUsed = activeBlock.totalTokens || 0;
-      
-      // Use ccusage's exact logic: max tokens from ALL completed blocks (not gaps, not active)
-      let tokensLimit = 0;
-      
-      for (const block of ccusageData.blocks) {
-        if (!(block.isGap ?? false) && !block.isActive) {
-          const blockTokens = block.totalTokens || 0;
-          if (blockTokens > tokensLimit) {
-            tokensLimit = blockTokens;
-          }
-        }
-      }
-      
-      // Fallback if no historical data available
-      if (tokensLimit === 0) {
-        tokensLimit = tokensUsed * 2; // Conservative fallback
-      }
+      const tokensUsed = dailyUsage.totalTokens;
+      const tokensLimit = limitInfo.dailyTokenLimit;
       
       const percentage = tokensLimit > 0 ? (tokensUsed / tokensLimit) * 100 : 0;
       const isOverLimit = percentage > 100;
+
+      // Calculate projection
+      const projection = await this.calculateProjection(dailyUsage, tokensLimit);
 
       return {
         percentage: Math.round(percentage * 10) / 10, // Round to 1 decimal
         tokensUsed,
         tokensLimit,
         isOverLimit,
-        projection: activeBlock.projection || null
+        projection
       };
     } catch (error) {
-      // Graceful fallback when ccusage is not available
+      console.debug('Error getting subscription info:', error);
+      // Graceful fallback when transcript parsing fails
       return this.getFallbackData();
     }
   }
 
-  async callCcusage(): Promise<any> {
+  private async calculateProjection(dailyUsage: any, tokenLimit: number): Promise<{
+    totalTokens: number;
+    totalCost: number;
+    remainingMinutes: number;
+  } | null> {
     try {
-      // Try npx ccusage@latest first, then fallback to ccusage directly
-      let result: string;
-      try {
-        result = execSync('npx ccusage@latest blocks --json', { 
-          encoding: 'utf8',
-          timeout: 5000,
-          stdio: ['ignore', 'pipe', 'ignore'] // Suppress stderr
-        });
-      } catch {
-        result = execSync('ccusage blocks --json', { 
-          encoding: 'utf8',
-          timeout: 5000,
-          stdio: ['ignore', 'pipe', 'ignore'] // Suppress stderr
-        });
+      // Get reset time info for remaining minutes calculation
+      const resetInfo = await this.resetTimeDetection.getResetTime();
+      const remainingMinutes = Math.max(0, Math.floor(resetInfo.timeRemaining / (60 * 1000)));
+
+      // Calculate current costs for entries without existing costUSD
+      let totalCost = dailyUsage.totalCost;
+      
+      // Add calculated costs for entries missing costUSD
+      for (const entry of dailyUsage.entries) {
+        if (typeof entry.costUSD !== 'number') {
+          const calculatedCost = await PricingService.calculateCostForEntry(entry);
+          totalCost += calculatedCost;
+        }
       }
-      return JSON.parse(result);
+
+      return {
+        totalTokens: dailyUsage.totalTokens,
+        totalCost,
+        remainingMinutes
+      };
     } catch (error) {
-      throw new Error(`Failed to call ccusage: ${error instanceof Error ? error.message : String(error)}`);
+      console.debug('Error calculating projection:', error);
+      return null;
     }
   }
 

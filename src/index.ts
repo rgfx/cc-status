@@ -93,7 +93,7 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     }
     
     if (finalConfig.segments.subscription.enabled) {
-      promises.push(subscriptionService.getSubscriptionInfo());
+      promises.push(subscriptionService.getSubscriptionInfo(hookData.session_id));
     } else {
       promises.push(Promise.resolve(null));
     }
@@ -114,14 +114,11 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
 
     // Get session timer info if enabled
     let sessionTimerInfo = null;
-    if (finalConfig.segments.sessionTimer.enabled && subscriptionInfo) {
-      // Get ccusage data again for session timer (we need the active block)
+    if (finalConfig.segments.sessionTimer.enabled) {
       try {
-        const ccusageData = await subscriptionService.callCcusage();
-        const activeBlock = ccusageData?.blocks?.find((block: any) => block.isActive === true);
-        sessionTimerInfo = sessionTimerService.getSessionTimer(activeBlock);
+        sessionTimerInfo = await sessionTimerService.getSessionTimer();
       } catch {
-        // Fallback gracefully if ccusage fails
+        // Fallback gracefully if timer detection fails
         sessionTimerInfo = null;
       }
     }

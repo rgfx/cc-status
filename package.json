@@ -44,7 +44,9 @@
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "glob": "^11.0.3"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",

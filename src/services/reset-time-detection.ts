@@ -76,8 +76,8 @@ export class ResetTimeDetectionService {
         
         for (const entry of entries) {
           // Look for usageLimitResetTime field in the transcript entry
-          if ((entry as any).usageLimitResetTime) {
-            usageLimitResetTime = new Date((entry as any).usageLimitResetTime);
+          if (entry.usageLimitResetTime) {
+            usageLimitResetTime = new Date(entry.usageLimitResetTime);
             break;
           }
         }
@@ -97,23 +97,39 @@ export class ResetTimeDetectionService {
         };
       }
 
-      // Fallback: use next 2AM as you specified
-      const now = new Date();
-      let resetTime = new Date(now);
-      resetTime.setHours(2, 0, 0, 0); // 2AM local time
-      
-      if (resetTime.getTime() <= now.getTime()) {
-        resetTime.setDate(resetTime.getDate() + 1);
+      // Use ccusage session block logic: create a 5-hour block from first usage
+      const dailyUsage = await this.transcriptParser.getDailyUsage();
+      if (dailyUsage.entries.length > 0) {
+        // Get the earliest entry to establish block start time
+        const sortedEntries = dailyUsage.entries.sort((a, b) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        const firstEntry = sortedEntries[0];
+        const blockStartTime = new Date(firstEntry.timestamp);
+        
+        // Floor to nearest hour like ccusage does
+        blockStartTime.setMinutes(0, 0, 0);
+        
+        // Reset time is block start + 5 hours (ccusage logic)
+        const resetTime = new Date(blockStartTime.getTime() + (5 * 60 * 60 * 1000));
+        const now = new Date();
+        
+        // If the calculated reset time has already passed, add another 5 hours
+        if (resetTime.getTime() <= now.getTime()) {
+          resetTime.setTime(resetTime.getTime() + (5 * 60 * 60 * 1000));
+        }
+
+        const timeRemaining = resetTime.getTime() - now.getTime();
+
+        return {
+          resetTime,
+          confidence: 'medium',
+          source: 'usage_pattern',
+          timeRemaining: Math.max(0, timeRemaining)
+        };
       }
 
-      const timeRemaining = resetTime.getTime() - now.getTime();
-
-      return {
-        resetTime,
-        confidence: 'low',
-        source: 'usage_pattern',
-        timeRemaining: Math.max(0, timeRemaining)
-      };
+      return this.getFallbackResetTime();
 
     } catch (error) {
       console.debug('Error in block pattern detection:', error);

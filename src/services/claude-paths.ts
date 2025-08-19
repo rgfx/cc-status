@@ -5,17 +5,35 @@ import { homedir } from "node:os";
 
 /**
  * Get possible Claude configuration paths
+ * Enhanced to support multiple paths via environment variables
  */
 export function getClaudePaths(): string[] {
   const paths: string[] = [];
-  
-  const homeDir = homedir();
-  const defaultPath = join(homeDir, ".claude");
-  
-  if (existsSync(defaultPath)) {
-    paths.push(defaultPath);
+
+  // Check for environment variable with multiple paths
+  const envPath = process.env.CLAUDE_CONFIG_DIR;
+  if (envPath) {
+    envPath.split(",").forEach((path) => {
+      const trimmedPath = path.trim();
+      if (existsSync(trimmedPath)) {
+        paths.push(trimmedPath);
+      }
+    });
   }
-  
+
+  // Fallback to default paths if no environment paths found
+  if (paths.length === 0) {
+    const homeDir = homedir();
+    const configPath = join(homeDir, ".config", "claude");
+    const claudePath = join(homeDir, ".claude");
+
+    if (existsSync(configPath)) {
+      paths.push(configPath);
+    } else if (existsSync(claudePath)) {
+      paths.push(claudePath);
+    }
+  }
+
   return paths;
 }
 

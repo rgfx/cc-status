@@ -17,6 +17,7 @@ export interface TranscriptEntry {
   model?: string;
   model_id?: string;
   costUSD?: number;
+  usageLimitResetTime?: string; // Usage limit reset timestamp from Claude API
 }
 
 export interface TokenBreakdown {
@@ -43,6 +44,12 @@ export class TranscriptParser {
   async parseTranscriptFile(filePath: string): Promise<TranscriptEntry[]> {
     try {
       const content = await readFile(filePath, 'utf-8');
+      
+      // Handle empty files gracefully
+      if (!content || !content.trim()) {
+        return [];
+      }
+      
       const lines = content.trim().split('\n').filter(line => line.trim());
       
       if (lines.length === 0) {
@@ -56,7 +63,13 @@ export class TranscriptParser {
           // Skip empty or whitespace-only lines
           if (!line.trim()) continue;
           
-          const entry = JSON.parse(line) as Record<string, unknown>;
+          // Additional validation - skip lines that don't look like JSON
+          const trimmedLine = line.trim();
+          if (!trimmedLine.startsWith('{') || !trimmedLine.endsWith('}')) {
+            continue;
+          }
+          
+          const entry = JSON.parse(trimmedLine) as Record<string, unknown>;
           
           // Look for usage data in the message
           if (entry.message && typeof entry.message === 'object') {
@@ -81,6 +94,11 @@ export class TranscriptParser {
               // Include existing cost if available
               if (typeof entry.costUSD === 'number') {
                 transcriptEntry.costUSD = entry.costUSD;
+              }
+
+              // Include usage limit reset time if available (like ccusage)
+              if (entry.usageLimitResetTime && typeof entry.usageLimitResetTime === 'string') {
+                transcriptEntry.usageLimitResetTime = entry.usageLimitResetTime;
               }
 
               entries.push(transcriptEntry);
@@ -164,7 +182,7 @@ export class TranscriptParser {
       // Parse the target session
       const entries = await this.parseTranscriptFile(targetTranscriptPath);
       
-      // Group into 5-hour blocks and get the current active block (like ccusage)
+      // Get the current active block since last 2AM reset (like ccusage)
       const currentBlock = this.getCurrentActiveBlock(entries);
       
       if (!currentBlock) {
@@ -192,7 +210,7 @@ export class TranscriptParser {
   }
 
   /**
-   * Get the current active 5-hour block from session entries (like ccusage)
+   * Get the current active block from session entries (using ccusage logic with usageLimitResetTime)
    */
   private getCurrentActiveBlock(entries: TranscriptEntry[]): {entries: TranscriptEntry[]} | null {
     if (entries.length === 0) return null;
@@ -203,42 +221,57 @@ export class TranscriptParser {
     );
     
     const now = new Date();
-    const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
     
-    // Find the most recent entry to determine current block
+    // First check if we have usageLimitResetTime from any entry (like ccusage does)
+    let resetTime: Date | null = null;
+    for (const entry of sortedEntries) {
+      if (entry.usageLimitResetTime) {
+        resetTime = new Date(entry.usageLimitResetTime);
+        break;
+      }
+    }
+    
+    if (resetTime && now < resetTime) {
+      // We have an active reset time - find entries since the block start
+      // ccusage considers the block start to be up to 5 hours before the reset
+      const blockStartTime = new Date(resetTime.getTime() - (5 * 60 * 60 * 1000));
+      
+      const currentBlockEntries = sortedEntries.filter(entry => {
+        const entryTime = new Date(entry.timestamp);
+        return entryTime.getTime() >= blockStartTime.getTime();
+      });
+      
+      return { entries: currentBlockEntries };
+    }
+    
+    // Fallback to 5-hour window logic if no usageLimitResetTime found
+    const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
     const latestEntry = sortedEntries[sortedEntries.length - 1];
     const latestTime = new Date(latestEntry.timestamp);
     
-    // Calculate current block start time
-    // If latest activity was less than 5 hours ago, it's in current block
-    let currentBlockStart: Date;
-    
-    if (now.getTime() - latestTime.getTime() < FIVE_HOURS_MS) {
-      // Still in the same block as latest activity
-      // Find the start of this 5-hour block by working backwards
-      currentBlockStart = new Date(latestTime);
-      
-      // Look for a gap larger than 5 hours before the latest activity
-      for (let i = sortedEntries.length - 2; i >= 0; i--) {
-        const entryTime = new Date(sortedEntries[i].timestamp);
-        const timeDiff = latestTime.getTime() - entryTime.getTime();
-        
-        if (timeDiff > FIVE_HOURS_MS) {
-          // Found a gap - current block starts after this gap
-          break;
-        }
-        currentBlockStart = entryTime;
-      }
-    } else {
-      // No recent activity - return empty block
+    // If latest activity was more than 5 hours ago, no current block
+    if (now.getTime() - latestTime.getTime() > FIVE_HOURS_MS) {
       return { entries: [] };
     }
     
-    // Collect all entries in the current 5-hour block
+    // Find the start of the current 5-hour block by looking for gaps
+    let currentBlockStart = new Date(latestTime);
+    
+    for (let i = sortedEntries.length - 2; i >= 0; i--) {
+      const entryTime = new Date(sortedEntries[i].timestamp);
+      const timeDiff = latestTime.getTime() - entryTime.getTime();
+      
+      if (timeDiff > FIVE_HOURS_MS) {
+        // Found a gap - current block starts after this gap
+        break;
+      }
+      currentBlockStart = entryTime;
+    }
+    
+    // Get all entries in the current block (since the dynamic start time)
     const currentBlockEntries = sortedEntries.filter(entry => {
       const entryTime = new Date(entry.timestamp);
-      const timeDiff = latestTime.getTime() - entryTime.getTime();
-      return timeDiff <= FIVE_HOURS_MS && entryTime >= currentBlockStart;
+      return entryTime.getTime() >= currentBlockStart.getTime();
     });
     
     return { entries: currentBlockEntries };

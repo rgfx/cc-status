@@ -28,7 +28,6 @@ export async function getDailyCostInfo(): Promise<DailyCostInfo | null> {
       formattedCost: totalCost.toFixed(2)
     };
   } catch (error) {
-    console.debug('Error fetching daily cost:', error);
     return null;
   }
 }

@@ -45,7 +45,6 @@ export class SessionTimerService {
         elapsedTime: this.formatElapsedTime(elapsedMinutes) // For debugging
       };
     } catch (error) {
-      console.debug('Error getting session timer:', error);
       return null;
     }
   }
@@ -85,7 +84,6 @@ export class SessionTimerService {
       
       return null;
     } catch (error) {
-      console.debug('Error finding active block:', error);
       return null;
     }
   }

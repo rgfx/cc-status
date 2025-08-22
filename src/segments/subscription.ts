@@ -20,8 +20,8 @@ export class SubscriptionService {
 
   async getSubscriptionInfo(sessionId?: string): Promise<SubscriptionInfo | null> {
     try {
-      // Use original transcript parser for consistency
-      const dailyUsage = await this.transcriptParser.getDailyUsage(sessionId);
+      // Get current 5-hour block usage across ALL sessions (not just current session)
+      const dailyUsage = await this.transcriptParser.getCurrentBlockUsageAcrossAllSessions();
       
       // Use original sophisticated limit detection that generated good ~39M
       const limitInfo = await this.limitDetection.getDailyTokenLimit();
@@ -40,7 +40,6 @@ export class SubscriptionService {
         projection: null // Keep it simple for now
       };
     } catch (error) {
-      console.debug('Error getting subscription info:', error);
       return this.getFallbackData();
     }
   }

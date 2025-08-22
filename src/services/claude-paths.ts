@@ -57,7 +57,6 @@ export async function findProjectPaths(claudePaths: string[]): Promise<string[]>
           }
         }
       } catch (error) {
-        console.debug(`Failed to read projects directory ${projectsDir}:`, error);
       }
     }
   }
@@ -111,12 +110,10 @@ export async function findTodaysTranscripts(): Promise<string[]> {
               todaysTranscripts.push(transcriptPath);
             }
           } catch (statError) {
-            console.debug(`Failed to stat transcript file ${transcriptPath}:`, statError);
           }
         }
       }
     } catch (error) {
-      console.debug(`Failed to read project directory ${projectPath}:`, error);
     }
   }
   
@@ -153,12 +150,10 @@ export async function findTranscriptsForDate(date: Date): Promise<string[]> {
               dayTranscripts.push(transcriptPath);
             }
           } catch (statError) {
-            console.debug(`Failed to stat transcript file ${transcriptPath}:`, statError);
           }
         }
       }
     } catch (error) {
-      console.debug(`Failed to read project directory ${projectPath}:`, error);
     }
   }
   

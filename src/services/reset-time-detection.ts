@@ -30,7 +30,6 @@ export class ResetTimeDetectionService {
       return resetTime;
       
     } catch (error) {
-      console.debug('Error detecting reset time:', error);
       const fallbackTime = this.getFallbackResetTime();
       this.cachedResetTime = fallbackTime;
       return fallbackTime;
@@ -132,7 +131,6 @@ export class ResetTimeDetectionService {
       return this.getFallbackResetTime();
 
     } catch (error) {
-      console.debug('Error in block pattern detection:', error);
       return this.getFallbackResetTime();
     }
   }
@@ -184,7 +182,6 @@ export class ResetTimeDetectionService {
       return this.getFallbackResetTime();
       
     } catch (error) {
-      console.debug('Error in pattern analysis:', error);
       return this.getFallbackResetTime();
     }
   }
@@ -277,7 +274,6 @@ export class ResetTimeDetectionService {
       };
 
     } catch (error) {
-      console.debug('Error detecting from first usage:', error);
       return this.getFallbackResetTime();
     }
   }

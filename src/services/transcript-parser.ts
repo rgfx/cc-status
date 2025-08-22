@@ -112,7 +112,6 @@ export class TranscriptParser {
 
       return entries;
     } catch (error) {
-      console.debug(`Error reading transcript file ${filePath}:`, error);
       return [];
     }
   }
@@ -204,7 +203,6 @@ export class TranscriptParser {
         sessionCount: 1 // Current active block
       };
     } catch (error) {
-      console.debug('Error getting daily usage:', error);
       return this.getEmptyUsage();
     }
   }
@@ -288,6 +286,72 @@ export class TranscriptParser {
   }
 
   /**
+   * Get current 5-hour block usage across ALL sessions (for subscription tracking)
+   * Uses same block identification algorithm as session timer for consistency
+   */
+  async getCurrentBlockUsageAcrossAllSessions(): Promise<DailyUsage> {
+    try {
+      const transcriptFiles = await findTodaysTranscripts();
+      const allEntries: TranscriptEntry[] = [];
+      
+      // Parse all transcript files for today
+      for (const filePath of transcriptFiles) {
+        const entries = await this.parseTranscriptFile(filePath);
+        allEntries.push(...entries);
+      }
+
+      if (allEntries.length === 0) {
+        return this.getEmptyUsage();
+      }
+
+      // Use ccusage's identifySessionBlocks logic (same as session timer)
+      const sessionBlocks = this.identifySessionBlocks(allEntries);
+      
+      // Find active block (ccusage's logic)
+      const now = new Date();
+      const sessionDurationMs = 5 * 60 * 60 * 1000; // 5 hours
+      
+      let activeBlock: {startTime: Date, endTime: Date, entries: TranscriptEntry[]} | null = null;
+      
+      for (const block of sessionBlocks) {
+        const actualEndTime = block.entries.length > 0 
+          ? block.entries[block.entries.length - 1].timestamp 
+          : block.startTime;
+        
+        const isActive = 
+          now.getTime() - new Date(actualEndTime).getTime() < sessionDurationMs && 
+          now < block.endTime;
+          
+        if (isActive) {
+          activeBlock = block;
+          break;
+        }
+      }
+      
+      if (!activeBlock || activeBlock.entries.length === 0) {
+        return this.getEmptyUsage();
+      }
+      
+      const tokenBreakdown = this.calculateTokenBreakdown(activeBlock.entries);
+      
+      // Calculate total cost from existing costUSD fields
+      const totalCost = activeBlock.entries.reduce((sum, entry) => {
+        return sum + (entry.costUSD || 0);
+      }, 0);
+
+      return {
+        totalTokens: tokenBreakdown.total,
+        totalCost,
+        tokenBreakdown,
+        entries: activeBlock.entries,
+        sessionCount: transcriptFiles.length
+      };
+    } catch (error) {
+      return this.getEmptyUsage();
+    }
+  }
+
+  /**
    * Get usage data for ALL sessions today (for daily cost calculation)
    */
   async getAllSessionsForToday(): Promise<DailyUsage> {
@@ -315,7 +379,6 @@ export class TranscriptParser {
         sessionCount: transcriptFiles.length
       };
     } catch (error) {
-      console.debug('Error getting all sessions for today:', error);
       return this.getEmptyUsage();
     }
   }
@@ -347,7 +410,6 @@ export class TranscriptParser {
         sessionCount: transcriptFiles.length
       };
     } catch (error) {
-      console.debug(`Error getting usage for date ${date.toISOString()}:`, error);
       return {
         totalTokens: 0,
         totalCost: 0,
@@ -376,6 +438,78 @@ export class TranscriptParser {
     }
     
     return usage;
+  }
+
+  /**
+   * Floor timestamp to hour (used by ccusage block identification)
+   */
+  private floorToHour(timestamp: Date): Date {
+    const floored = new Date(timestamp);
+    floored.setUTCMinutes(0, 0, 0); // Use UTC like ccusage does
+    return floored;
+  }
+
+  /**
+   * Implement ccusage's identifySessionBlocks algorithm exactly
+   */
+  private identifySessionBlocks(entries: TranscriptEntry[]): {startTime: Date, endTime: Date, entries: TranscriptEntry[]}[] {
+    if (entries.length === 0) return [];
+
+    const sessionDurationMs = 5 * 60 * 60 * 1000; // 5 hours
+    const blocks: {startTime: Date, endTime: Date, entries: TranscriptEntry[]}[] = [];
+    const sortedEntries = [...entries].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    let currentBlockStart: Date | null = null;
+    let currentBlockEntries: TranscriptEntry[] = [];
+
+    for (const entry of sortedEntries) {
+      const entryTime = new Date(entry.timestamp);
+
+      if (currentBlockStart == null) {
+        // First entry - start a new block (floored to the hour)
+        currentBlockStart = this.floorToHour(entryTime);
+        currentBlockEntries = [entry];
+      } else {
+        const timeSinceBlockStart = entryTime.getTime() - currentBlockStart.getTime();
+        const lastEntry = currentBlockEntries[currentBlockEntries.length - 1];
+        if (lastEntry == null) {
+          continue;
+        }
+        const lastEntryTime = new Date(lastEntry.timestamp);
+        const timeSinceLastEntry = entryTime.getTime() - lastEntryTime.getTime();
+
+        if (timeSinceBlockStart > sessionDurationMs || timeSinceLastEntry > sessionDurationMs) {
+          // Close current block
+          const endTime = new Date(currentBlockStart.getTime() + sessionDurationMs);
+          blocks.push({
+            startTime: currentBlockStart,
+            endTime,
+            entries: currentBlockEntries
+          });
+
+          // Start new block (floored to the hour)
+          currentBlockStart = this.floorToHour(entryTime);
+          currentBlockEntries = [entry];
+        } else {
+          // Add to current block
+          currentBlockEntries.push(entry);
+        }
+      }
+    }
+
+    // Close the last block
+    if (currentBlockStart != null && currentBlockEntries.length > 0) {
+      const endTime = new Date(currentBlockStart.getTime() + sessionDurationMs);
+      blocks.push({
+        startTime: currentBlockStart,
+        endTime,
+        entries: currentBlockEntries
+      });
+    }
+
+    return blocks;
   }
 
   /**

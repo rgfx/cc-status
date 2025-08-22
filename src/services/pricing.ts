@@ -181,7 +181,6 @@ export class PricingService {
       const cacheData = { data, timestamp: Date.now() };
       writeFileSync(cacheFile, JSON.stringify(cacheData));
     } catch (error) {
-      console.debug('Failed to save pricing cache to disk:', error);
     }
   }
 
@@ -230,7 +229,6 @@ export class PricingService {
         }
       }
     } catch (error) {
-      console.debug('Failed to fetch pricing from GitHub, using fallback:', error);
     }
 
     // Use stale cache if available

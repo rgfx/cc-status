@@ -36,7 +36,6 @@ export class LimitDetectionService {
       return fallbackLimit;
       
     } catch (error) {
-      console.debug('Error detecting daily limit:', error);
       const fallbackLimit = this.getConservativeFallback();
       this.cachedLimit = fallbackLimit;
       return fallbackLimit;
@@ -99,7 +98,6 @@ export class LimitDetectionService {
       };
 
     } catch (error) {
-      console.debug('Error in historical analysis:', error);
       return this.getConservativeFallback();
     }
   }

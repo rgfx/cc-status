@@ -29,7 +29,6 @@ export class ConfigLoader {
         return JSON.parse(configData);
       }
     } catch (error) {
-      console.warn(`Warning: Failed to load config from ${filePath}:`, error);
     }
     return null;
   }

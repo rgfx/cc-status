@@ -29,7 +29,6 @@ export class SessionTimerService {
         isNearReset
       };
     } catch (error) {
-      console.debug('Error getting session timer:', error);
       return null;
     }
   }
@@ -38,7 +37,6 @@ export class SessionTimerService {
   getSessionTimerSync(activeBlock: any): SessionTimerInfo | null {
     // This method is deprecated but kept for compatibility
     // Call the async version but note that it returns null since we can't await
-    console.warn('getSessionTimerSync is deprecated, use getSessionTimer() instead');
     return null;
   }
 }

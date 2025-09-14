@@ -85,17 +85,18 @@ export class StatusRenderer {
     if (!contextConfig.enabled || !contextInfo) return "";
 
     const { context: contextIcon } = this.config.format.icons;
-    
-    // Format: ◐ 76%
-    const text = `${contextIcon} ${contextInfo.percentage}%`;
-    
-    // Color based on usage level
-    let color = this.config.colors.neutral;
-    if (contextInfo.isNearLimit) {
-      color = this.config.colors.warning;
+
+    // Color only the percentage: 0-49% normal, 50-69% yellow, 70%+ red
+    let percentageColor = this.config.colors.neutral;
+    if (contextInfo.percentage >= 70) {
+      percentageColor = this.config.colors.critical; // Red
+    } else if (contextInfo.percentage >= 50) {
+      percentageColor = this.config.colors.warning; // Yellow
     }
-    
-    return colorText(text, color);
+
+    // Format: ◐ 76% (with colored percentage)
+    return colorText(`${contextIcon} `, this.config.colors.neutral) +
+           colorText(`${contextInfo.percentage}%`, percentageColor);
   }
 
   renderBurnRate(burnRateInfo: BurnRateInfo | null, subscriptionInfo: SubscriptionInfo | null): string {

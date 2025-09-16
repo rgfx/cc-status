@@ -30,15 +30,12 @@ export class LimitDetectionService {
         return historicalLimit;
       }
 
-      // Fallback to conservative estimate
-      const fallbackLimit = this.getConservativeFallback();
-      this.cachedLimit = fallbackLimit;
-      return fallbackLimit;
+      // Skip fallback to see what historical analysis produces
+      throw new Error('No historical analysis available, skipping fallback');
       
     } catch (error) {
-      const fallbackLimit = this.getConservativeFallback();
-      this.cachedLimit = fallbackLimit;
-      return fallbackLimit;
+      // Also skip catch fallback to see what's really happening
+      throw error;
     }
   }
 
@@ -81,12 +78,12 @@ export class LimitDetectionService {
         estimatedLimit = percentile99;
         confidence = 'medium';
       } else if (percentile95 > 20_000_000) {
-        // Moderate usage - use 99th percentile but be conservative
-        estimatedLimit = Math.max(percentile99, 45_600_000);
+        // Moderate usage - use 99th percentile (remove 45.6M minimum)
+        estimatedLimit = percentile99;
         confidence = 'low';
       } else {
-        // Low usage - use fallback
-        estimatedLimit = 45_600_000;
+        // Low usage - use 99th percentile instead of hardcoded fallback
+        estimatedLimit = percentile99 > 0 ? percentile99 : 30_000_000; // Only fallback if no data
         confidence = 'low';
       }
 

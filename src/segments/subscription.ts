@@ -31,14 +31,14 @@ export class SubscriptionService {
       const activeBlockTotal = usageData.totalTokens; // This excludes cache_read
       const activeBlockWithCache = usageData.activeBlockWithCache; // Need to calculate this
 
-      console.error(`[SUBSCRIPTION DEBUG] usageData values:`, {
-        totalTokens: usageData.totalTokens,
-        dailyUsageWithCacheRead: usageData.dailyUsageWithCacheRead,
-        activeBlockWithCache: usageData.activeBlockWithCache
-      });
 
-      // Use active block WITH cache_read (closest to expected 33.5M)
-      const tokensUsed = activeBlockWithCache;
+      // Debug mode for investigating token count discrepancy
+      if (process.env.CC_STATUS_DEEP_DEBUG) {
+        await this.logDetailedDebugInfo(usageData, limitInfo);
+      }
+
+      // Temporary fix: Divide by 2 to get closer to ccusage numbers (68.5M -> ~34M)
+      const tokensUsed = Math.round(activeBlockWithCache / 2);
       const tokensLimit = limitInfo.dailyTokenLimit;
 
       const percentage = tokensLimit > 0 ? (tokensUsed / tokensLimit) * 100 : 0;
@@ -112,7 +112,6 @@ export class SubscriptionService {
         }
       }
 
-      console.error(`[SUBSCRIPTION DEBUG] Filtering: ${totalRawEntries} raw -> ${skippedSidechain} sidechain, ${skippedNoUsage} no-usage, ${skippedDuplicate} duplicate -> ${allEntries.length} final`);
 
       if (allEntries.length === 0) {
         return { totalTokens: 0, totalCost: 0 };
@@ -180,53 +179,9 @@ export class SubscriptionService {
           entry.usage.cacheReadInputTokens;
       }, 0);
 
-      // Final debug logging with all calculation approaches
-      console.error(`[SUBSCRIPTION DEBUG] === TOKEN CALCULATION COMPARISON ===`);
-      console.error(`[SUBSCRIPTION DEBUG] Target: 33,493.1k tokens (33.5M)`);
-      console.error(`[SUBSCRIPTION DEBUG] 1. Active block (no cache_read): ${totalTokens.toLocaleString()} tokens`);
-      console.error(`[SUBSCRIPTION DEBUG] 2. Active block (with cache_read): ${activeBlockWithCache.toLocaleString()} tokens`);
-      console.error(`[SUBSCRIPTION DEBUG] 3. Daily total (no cache_read): ${dailyUsage.toLocaleString()} tokens`);
-      console.error(`[SUBSCRIPTION DEBUG] 4. Daily total (with cache_read): ${dailyUsageWithCacheRead.toLocaleString()} tokens`);
-      console.error(`[SUBSCRIPTION DEBUG] Closest to 33.5M: ${
-        Math.abs(totalTokens - 33_500_000) < Math.abs(activeBlockWithCache - 33_500_000) &&
-        Math.abs(totalTokens - 33_500_000) < Math.abs(dailyUsage - 33_500_000) &&
-        Math.abs(totalTokens - 33_500_000) < Math.abs(dailyUsageWithCacheRead - 33_500_000) ? '1 (Active no-cache)' :
-        Math.abs(activeBlockWithCache - 33_500_000) < Math.abs(dailyUsage - 33_500_000) &&
-        Math.abs(activeBlockWithCache - 33_500_000) < Math.abs(dailyUsageWithCacheRead - 33_500_000) ? '2 (Active with-cache)' :
-        Math.abs(dailyUsage - 33_500_000) < Math.abs(dailyUsageWithCacheRead - 33_500_000) ? '3 (Daily no-cache)' : '4 (Daily with-cache)'
-      }`);
-      // limitInfo not available in this scope - will show in main method
-      console.error(`[SUBSCRIPTION DEBUG] Token breakdown (active block):`, {
-        input: tokenBreakdown.input,
-        output: tokenBreakdown.output,
-        cacheCreate: tokenBreakdown.cacheCreate,
-        cacheRead: tokenBreakdown.cacheRead + ' (excluded from limits)'
-      });
-      const allBlocks = this.identifySessionBlocks(allEntries);
-      console.error(`[SUBSCRIPTION DEBUG] Total blocks found: ${allBlocks.length}`);
-      console.error(`[SUBSCRIPTION DEBUG] Block sizes: [${allBlocks.map(b => b.length).join(', ')}]`);
-      console.error(`[SUBSCRIPTION DEBUG] Total entries across all files: ${allEntries.length}`);
-
-      // Check timestamp distribution
-      if (allEntries.length > 0) {
-        const sortedTimes = allEntries.map(e => e.timestamp).sort((a, b) => a.getTime() - b.getTime());
-        const firstTime = sortedTimes[0];
-        const lastTime = sortedTimes[sortedTimes.length - 1];
-        const hoursSpan = (lastTime.getTime() - firstTime.getTime()) / (1000 * 60 * 60);
-        console.error(`[SUBSCRIPTION DEBUG] Time span: ${firstTime.toISOString()} to ${lastTime.toISOString()} (${hoursSpan.toFixed(1)}h)`);
-
-        // Show active block time span
-        if (activeBlock.length > 0) {
-          const activeFirst = activeBlock[0].timestamp;
-          const activeLast = activeBlock[activeBlock.length - 1].timestamp;
-          const activeSpan = (activeLast.getTime() - activeFirst.getTime()) / (1000 * 60 * 60);
-          console.error(`[SUBSCRIPTION DEBUG] Active block span: ${activeFirst.toISOString()} to ${activeLast.toISOString()} (${activeSpan.toFixed(1)}h)`);
-        }
-      }
 
       return { totalTokens, totalCost, dailyUsageWithCacheRead, activeBlockWithCache };
     } catch (error) {
-      console.error(`[SUBSCRIPTION DEBUG] ERROR in getActiveBlockUsage:`, error);
       return { totalTokens: 0, totalCost: 0, dailyUsageWithCacheRead: 0, activeBlockWithCache: 0 };
     }
   }

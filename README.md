@@ -22,33 +22,114 @@ A focused, minimal statusline for Claude Code that displays real usage data in a
 
 ## Installation
 
+### Quick Install
+
 ```bash
 npm install -g cc-status
 ```
 
-## Usage
+### Platform Support
 
-### Claude Code Integration
+✅ **Windows** - Fully supported
+✅ **Linux** - Fully supported
+✅ **macOS** - Should work (untested)
 
-Add to your Claude Code `settings.json`:
+**Requirements:**
+- Node.js ≥18.0.0
+- git (for git segment)
+- Claude Code
+
+### Claude Code Configuration
+
+#### User-Level Settings (Recommended)
+
+For **global usage across all projects**, add to `~/.claude/settings.json`:
 
 ```json
 {
   "statusLine": {
-    "type": "command", 
-    "command": "cc-status"
+    "type": "command",
+    "command": "cc-status",
+    "padding": 0
   }
 }
+```
+
+**Settings file locations:**
+- **Linux/macOS**: `~/.claude/settings.json`
+- **Windows**: `C:\Users\YourName\.claude\settings.json`
+
+#### Project-Level Settings (Optional)
+
+For **project-specific configuration**, create `.claude/settings.json` in your project:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "cc-status",
+    "padding": 0
+  }
+}
+```
+
+Project settings override user-level settings.
+
+### Verifying Installation
+
+After configuring, restart Claude Code. You should see the statusline at the top:
+
+```
+⑂ main ✓ ↻ 19.6% 8.9M/45.6M ◐ 77% ◷ 3:36 2AM $47.35 ✽
+```
+
+### Troubleshooting
+
+**Statusline not showing?**
+
+1. **Check installation:**
+   ```bash
+   which cc-status  # Linux/macOS
+   where cc-status  # Windows
+   ```
+
+2. **Test manually:**
+   ```bash
+   echo '{"workspace":{"current_dir":"."}}' | cc-status
+   ```
+
+3. **Check settings file location:**
+   - Make sure you're editing the correct file
+   - User-level: `~/.claude/settings.json`
+   - Project-level: `.claude/settings.json` (in project root)
+
+4. **Restart Claude Code** completely (not just the conversation)
+
+**Command not found after installation?**
+
+- **Linux/macOS**: Check if npm global bin is in your PATH
+  ```bash
+  npm config get prefix  # Should show global npm directory
+  echo $PATH | grep npm  # Should include npm bin directory
+  ```
+
+- **Windows**: npm automatically adds to PATH during installation
+
+**On Linux: "cannot execute: required file not found"**
+
+This means the file has Windows line endings. The build process automatically fixes this, but if you encounter it:
+```bash
+npm run build  # Includes automatic line-ending fix
 ```
 
 ### Manual Testing
 
 ```bash
-# Test the statusline (requires Claude Code context)
+# Test the statusline
 echo '{}' | cc-status
 
-# Show help
-cc-status --help
+# Test with specific directory
+echo '{"workspace":{"current_dir":"/path/to/project"}}' | cc-status
 ```
 
 ## Configuration
@@ -125,6 +206,74 @@ Create `cc-status.json` in your project root or `~/.claude/cc-status.json`:
 - 🟢 **Green (0-80%)**: Safe usage levels
 - 🟡 **Yellow (80-100%)**: Warning - approaching limits
 - 🔴 **Red (100%+)**: Critical - over limits
+
+## Development
+
+### Setup
+
+```bash
+git clone https://github.com/rgfx/cc-status.git
+cd cc-status
+npm install
+npm run build
+```
+
+### Testing Local Changes
+
+**Option 1: Link globally (recommended for testing)**
+
+```bash
+npm run build
+npm link
+```
+
+Your global `cc-status` command will now use the local build. Changes workflow:
+1. Edit source files in `src/`
+2. Run `npm run build`
+3. Statusline updates automatically in Claude Code
+
+**Option 2: Use local build directly**
+
+In your project's `.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "/absolute/path/to/cc-status/dist/index.js",
+    "padding": 0
+  }
+}
+```
+
+### Build Process
+
+- **Build once**: `npm run build`
+- **Watch mode**: `npm run dev` (rebuilds on file changes)
+- **Line endings**: Automatically fixed during build (ensures Linux compatibility)
+
+### Project Structure
+
+```
+cc-status/
+├── src/
+│   ├── index.ts              # Entry point
+│   ├── renderer.ts           # Output formatting
+│   ├── segments/             # Individual statusline segments
+│   │   ├── git.ts
+│   │   ├── subscription.ts
+│   │   ├── context.ts
+│   │   ├── session-timer.ts
+│   │   └── burn-rate.ts
+│   ├── services/             # Core services
+│   │   ├── transcript-parser.ts
+│   │   ├── claude-paths.ts
+│   │   ├── limit-detection.ts
+│   │   └── pricing.ts
+│   └── config/               # Configuration handling
+├── dist/                     # Built files (gitignored)
+└── docs/                     # Additional documentation
+```
 
 ## License
 

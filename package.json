@@ -10,7 +10,8 @@
     "cc-status": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && npm run fix-line-endings",
+    "fix-line-endings": "node -e \"const fs=require('fs');const p='dist/index.js';fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace(/\\r\\n/g,'\\n'))\"",
     "dev": "tsup --watch",
     "start": "node dist/index.js",
     "lint": "eslint src/",

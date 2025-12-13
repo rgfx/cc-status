@@ -69,6 +69,16 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
       process.exit(1);
     }
 
+    // Debug: Log hook data if debug mode enabled
+    if (process.env.CC_STATUS_DEBUG) {
+      console.error(`[DEBUG] Hook data received:`, JSON.stringify({
+        has_context_window: !!hookData.context_window,
+        context_window: hookData.context_window,
+        has_transcript_path: !!hookData.transcript_path,
+        transcript_path: hookData.transcript_path
+      }, null, 2));
+    }
+
     const currentDir = hookData.workspace?.current_dir || hookData.cwd || process.cwd();
     
     // Load config with full priority system: CLI > ENV > Config Files > Defaults
@@ -99,7 +109,7 @@ echo '{"session_id":"test","workspace":{"current_dir":"/path","project_dir":"/pa
     }
     
     if (finalConfig.segments.context.enabled) {
-      promises.push(contextService.getContextInfo(hookData.transcript_path));
+      promises.push(contextService.getContextInfo(hookData.transcript_path, hookData.context_window));
     } else {
       promises.push(Promise.resolve(null));
     }

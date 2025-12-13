@@ -19,6 +19,11 @@ export interface ClaudeHookData {
     project_dir: string;
   };
   cwd: string;
+  context_window?: {
+    total_input_tokens: number;
+    total_output_tokens?: number;
+    context_window_size: number;
+  };
 }
 
 export class StatusRenderer {

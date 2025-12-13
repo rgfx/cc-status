@@ -13,7 +13,7 @@ A focused, minimal statusline for Claude Code that displays real usage data in a
 - **Direct transcript analysis** - Extracts usage data directly from Claude transcript files
 - **5-hour block tracking** - Matches Claude's billing cycles with accurate current block usage
 - **Statistical limit detection** - Analyzes historical usage patterns to estimate limits
-- **Context monitoring** - Shows context percentage from actual transcript files  
+- **Context monitoring** - Uses Claude Code's real-time context data when available, with transcript fallback
 - **Git integration** - Branch name, dirty status, ahead/behind indicators
 - **Session timer** - Time remaining until usage limit reset (extracted from transcript data)
 - **Burn rate tracking** - Visual indicator based on current token consumption rate
@@ -181,7 +181,13 @@ Create `cc-status.json` in your project root or `~/.claude/cc-status.json`:
 - **Limit estimation**: Statistical analysis (95th percentile) of historical 5-hour block usage
 - **Note**: Total session amounts may not be fully accurate as they represent estimated limits
 
-### Reset Time (◷ segment)  
+### Context Usage (◐ segment)
+- **Primary source**: Claude Code's `context_window` data (most accurate, when available)
+- **Fallback source**: Most recent transcript entry with usage data
+- **Calculation**: `(total_input_tokens / context_window_size) * 100`
+- **Color thresholds**: Normal (<50%), Yellow (50-69%), Red (70%+)
+
+### Reset Time (◷ segment)
 - **Primary**: Extracted from `usageLimitResetTime` field in transcript entries
 - **Fallback**: Next 2AM local time if no reset time found in transcripts
 

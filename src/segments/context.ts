@@ -20,7 +20,24 @@ interface TranscriptEntry {
 export class ContextService {
   private readonly MAX_CONTEXT_TOKENS = 200000; // Default Claude context limit
 
-  async getContextInfo(transcriptPath?: string): Promise<ContextInfo | null> {
+  async getContextInfo(transcriptPath?: string, contextWindow?: { total_input_tokens: number; context_window_size: number }): Promise<ContextInfo | null> {
+    // Priority 1: Use context_window data from Claude Code hook (most accurate)
+    if (contextWindow) {
+      // Debug: Log the actual values received
+      if (process.env.CC_STATUS_DEBUG) {
+        console.error(`[DEBUG] context_window data: ${JSON.stringify(contextWindow)}`);
+      }
+
+      const percentage = Math.min(100, Math.max(0, Math.round((contextWindow.total_input_tokens / contextWindow.context_window_size) * 100)));
+      const isNearLimit = percentage > 80;
+
+      return {
+        percentage,
+        isNearLimit
+      };
+    }
+
+    // Priority 2: Fall back to transcript parsing
     if (!transcriptPath || !fs.existsSync(transcriptPath)) {
       return null; // No fake data - return null when no real data available
     }

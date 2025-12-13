@@ -141,6 +141,14 @@ const OFFLINE_PRICING_DATA: Record<string, ModelPricing> = {
     cache_write_5m: 3.75,
     cache_write_1h: 6.00,
     cache_read: 0.30
+  },
+  "claude-sonnet-4-5-20250929": {
+    name: "Claude Sonnet 4.5",
+    input: 3.00,
+    output: 15.00,
+    cache_write_5m: 3.75,
+    cache_write_1h: 6.00,
+    cache_read: 0.30
   }
 };
 
@@ -200,45 +208,51 @@ export class PricingService {
       return diskCached.data;
     }
 
-    // Try to fetch fresh data
+    // Use offline data immediately for statusline performance
+    // Cache it in memory for subsequent calls
+    this.memoryCache.set('pricing', { data: OFFLINE_PRICING_DATA, timestamp: now });
+
+    // Try to fetch fresh data in background (non-blocking)
+    // This will update the disk cache for next time
+    this.updatePricingInBackground().catch(() => {
+      // Silently ignore fetch failures
+    });
+
+    // Return offline data immediately
+    return OFFLINE_PRICING_DATA;
+  }
+
+  private static async updatePricingInBackground(): Promise<void> {
     try {
       const response = await globalThis.fetch(this.GITHUB_PRICING_URL, {
         headers: {
           'User-Agent': 'cc-status',
           'Cache-Control': 'no-cache'
-        }
+        },
+        // Add a timeout to prevent hanging
+        signal: AbortSignal.timeout(5000)
       });
 
       if (response.ok) {
         const data = await response.json();
-        
+
         const dataObj = data as Record<string, unknown>;
         const pricingData: Record<string, unknown> = {};
-        
+
         // Filter out metadata
         for (const [key, value] of Object.entries(dataObj)) {
           if (key !== '_meta') {
             pricingData[key] = value;
           }
         }
-        
+
         if (this.validatePricingData(pricingData)) {
-          this.memoryCache.set('pricing', { data: pricingData, timestamp: now });
           this.saveDiskCache(pricingData);
-          return pricingData;
         }
       }
     } catch (error) {
+      // Silently ignore - we're already using offline data
     }
-
-    // Use stale cache if available
-    if (diskCached) {
-      this.memoryCache.set('pricing', diskCached);
-      return diskCached.data;
-    }
-
-    // Final fallback to offline data
-    return OFFLINE_PRICING_DATA;
   }
 
   private static validatePricingData(data: unknown): data is Record<string, ModelPricing> {
@@ -282,13 +296,14 @@ export class PricingService {
     const patterns = [
       { pattern: ['opus-4-1', 'claude-opus-4-1'], fallback: 'claude-opus-4-1-20250805' },
       { pattern: ['opus-4', 'claude-opus-4'], fallback: 'claude-opus-4-20250514' },
+      { pattern: ['sonnet-4-5', 'claude-sonnet-4-5'], fallback: 'claude-sonnet-4-5-20250929' },
       { pattern: ['sonnet-4', 'claude-sonnet-4'], fallback: 'claude-sonnet-4-20250514' },
       { pattern: ['sonnet-3.7', '3-7-sonnet'], fallback: 'claude-3-7-sonnet-20250219' },
       { pattern: ['3-5-sonnet', 'sonnet-3.5'], fallback: 'claude-3-5-sonnet-20241022' },
       { pattern: ['3-5-haiku', 'haiku-3.5'], fallback: 'claude-3-5-haiku-20241022' },
       { pattern: ['haiku', '3-haiku'], fallback: 'claude-3-haiku-20240307' },
       { pattern: ['opus'], fallback: 'claude-opus-4-20250514' },
-      { pattern: ['sonnet'], fallback: 'claude-3-5-sonnet-20241022' },
+      { pattern: ['sonnet'], fallback: 'claude-sonnet-4-5-20250929' },
     ];
 
     for (const { pattern, fallback } of patterns) {

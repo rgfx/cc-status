@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { findTodaysTranscripts, findTranscriptsForDate } from "./claude-paths";
+import { PricingService } from "./pricing";
 
 export interface TranscriptEntry {
   timestamp: string;
@@ -137,6 +138,25 @@ export class TranscriptParser {
   }
 
   /**
+   * Calculate total cost from transcript entries using pricing service
+   */
+  private async calculateTotalCost(entries: TranscriptEntry[]): Promise<number> {
+    let totalCost = 0;
+
+    for (const entry of entries) {
+      try {
+        const cost = await PricingService.calculateCostForEntry(entry);
+        totalCost += cost;
+      } catch (error) {
+        // If cost calculation fails, silently skip this entry
+        continue;
+      }
+    }
+
+    return totalCost;
+  }
+
+  /**
    * Get current active session usage by session ID (like ccusage active block)
    */
   async getDailyUsage(sessionId?: string): Promise<DailyUsage> {
@@ -189,11 +209,9 @@ export class TranscriptParser {
       }
       
       const tokenBreakdown = this.calculateTokenBreakdown(currentBlock.entries);
-      
-      // Calculate total cost from existing costUSD fields
-      const totalCost = currentBlock.entries.reduce((sum, entry) => {
-        return sum + (entry.costUSD || 0);
-      }, 0);
+
+      // Calculate total cost from usage data (with fallback to existing costUSD)
+      const totalCost = await this.calculateTotalCost(currentBlock.entries);
 
       return {
         totalTokens: tokenBreakdown.total,
@@ -333,11 +351,9 @@ export class TranscriptParser {
       }
       
       const tokenBreakdown = this.calculateTokenBreakdown(activeBlock.entries);
-      
-      // Calculate total cost from existing costUSD fields
-      const totalCost = activeBlock.entries.reduce((sum, entry) => {
-        return sum + (entry.costUSD || 0);
-      }, 0);
+
+      // Calculate total cost from usage data (with fallback to existing costUSD)
+      const totalCost = await this.calculateTotalCost(activeBlock.entries);
 
       return {
         totalTokens: tokenBreakdown.total,
@@ -358,18 +374,16 @@ export class TranscriptParser {
     try {
       const transcriptFiles = await findTodaysTranscripts();
       const allEntries: TranscriptEntry[] = [];
-      
+
       for (const filePath of transcriptFiles) {
         const entries = await this.parseTranscriptFile(filePath);
         allEntries.push(...entries);
       }
 
       const tokenBreakdown = this.calculateTokenBreakdown(allEntries);
-      
-      // Calculate total cost from existing costUSD fields
-      const totalCost = allEntries.reduce((sum, entry) => {
-        return sum + (entry.costUSD || 0);
-      }, 0);
+
+      // Calculate total cost from usage data (with fallback to existing costUSD)
+      const totalCost = await this.calculateTotalCost(allEntries);
 
       return {
         totalTokens: tokenBreakdown.total,
@@ -397,10 +411,8 @@ export class TranscriptParser {
       }
 
       const tokenBreakdown = this.calculateTokenBreakdown(allEntries);
-      
-      const totalCost = allEntries.reduce((sum, entry) => {
-        return sum + (entry.costUSD || 0);
-      }, 0);
+
+      const totalCost = await this.calculateTotalCost(allEntries);
 
       return {
         totalTokens: tokenBreakdown.total,

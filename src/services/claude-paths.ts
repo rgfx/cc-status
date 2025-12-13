@@ -27,10 +27,12 @@ export function getClaudePaths(): string[] {
     const configPath = join(homeDir, ".config", "claude");
     const claudePath = join(homeDir, ".claude");
 
+    // Check both paths - use both if they exist
+    if (existsSync(claudePath)) {
+      paths.push(claudePath);
+    }
     if (existsSync(configPath)) {
       paths.push(configPath);
-    } else if (existsSync(claudePath)) {
-      paths.push(claudePath);
     }
   }
 
@@ -87,10 +89,10 @@ export async function findTranscriptFile(sessionId: string): Promise<string | nu
 export async function findTodaysTranscripts(): Promise<string[]> {
   const claudePaths = getClaudePaths();
   const projectPaths = await findProjectPaths(claudePaths);
-  
+
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Start of today
-  
+
   const todaysTranscripts: string[] = [];
   
   for (const projectPath of projectPaths) {
